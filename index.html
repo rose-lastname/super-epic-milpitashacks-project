@@ -1583,7 +1583,7 @@
             </span>
           </div>
           <div id="pathSteps" class="path-steps" aria-label="Tone path"></div>
-          <div class="hold-meter" aria-label="Hold progress">
+          <div style="display: none;" class="hold-meter" aria-label="Hold progress">
             <div class="hold-meter-top">
               <span id="holdLabel">Hold the right zone</span>
               <span id="holdTime">0.42s</span>
@@ -1600,11 +1600,11 @@
         </div>
 
         <div class="tone-chips" aria-label="Tone controls">
-          <div class="tone-chip"><span class="chip-icon high" aria-hidden="true"></span> High Tone</div>
-          <div class="tone-chip"><span class="chip-icon low" aria-hidden="true"></span> Low Tone</div>
+          <div style="display: none;" class="tone-chip"><span class="chip-icon high" aria-hidden="true"></span> High Tone</div>
+          <div style="display: none;" class="tone-chip"><span class="chip-icon low" aria-hidden="true"></span> Low Tone</div>
         </div>
 
-        <div class="readout">
+        <div style="display: none;" class="readout">
           <div class="meter">
             Finger Spot
             <strong id="yReadout">--</strong>
@@ -1614,8 +1614,6 @@
             <strong id="pitchReadout">330Hz</strong>
           </div>
         </div>
-
-        <p class="hint">Each level introduces new words. After Level 3, the game loops with tone hints hidden unless you reveal them.</p>
       </aside>
     </section>
   </main>
