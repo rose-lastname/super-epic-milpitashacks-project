@@ -14,19 +14,21 @@
   <style>
     :root {
       color-scheme: light;
-      --cream: #fff8e8;
-      --butter: #ffe7a8;
-      --mint: #bff3dc;
-      --mint-deep: #55c99f;
-      --sky: #bdeeff;
-      --sky-deep: #4dbbe1;
-      --peach: #ffc4a8;
-      --rose: #ff9ec8;
-      --lilac: #d8c7ff;
-      --ink: #25445a;
-      --soft-ink: #63798a;
+      --cream: #fffbef;
+      --butter: #ffe8ad;
+      --butter-soft: #fff0c9;
+      --sage: #bdd5bd;
+      --sage-deep: #789b7c;
+      --peach: #ffc9ad;
+      --peach-deep: #d98261;
+      --terracotta: #c8785e;
+      --sand: #f7dfba;
+      --rose: #f7b7aa;
+      --ink: #4a4a3f;
+      --soft-ink: #8a8172;
       --white: #ffffff;
-      --shadow: rgba(63, 91, 103, 0.18);
+      --shadow: rgba(136, 105, 73, 0.15);
+      --shadow-soft: rgba(136, 105, 73, 0.09);
     }
 
     * {
@@ -39,13 +41,13 @@
       color: var(--ink);
       font-family: "Quicksand", "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
       background:
-        radial-gradient(circle at 12% 14%, rgba(255, 196, 168, 0.7) 0 76px, transparent 77px),
-        radial-gradient(circle at 88% 11%, rgba(255, 231, 168, 0.9) 0 92px, transparent 93px),
-        radial-gradient(circle at 17% 88%, rgba(216, 199, 255, 0.7) 0 118px, transparent 119px),
-        linear-gradient(180deg, #e9fbff 0%, #f2fff7 48%, #fff8e8 100%);
+        radial-gradient(circle at 8% 18%, rgba(255, 201, 173, 0.5) 0 74px, transparent 75px),
+        radial-gradient(circle at 90% 10%, rgba(255, 232, 173, 0.72) 0 88px, transparent 89px),
+        radial-gradient(circle at 86% 88%, rgba(189, 213, 189, 0.54) 0 126px, transparent 127px),
+        linear-gradient(145deg, #fffbef 0%, #fff4dc 46%, #f7ead0 100%);
       display: grid;
       place-items: center;
-      padding: 24px;
+      padding: 28px;
       overflow-x: hidden;
     }
 
@@ -61,116 +63,212 @@
 
     body::before {
       bottom: 0;
-      height: 24vh;
+      height: 23vh;
       background:
-        radial-gradient(95px 36px at 5% 24%, rgba(77, 187, 225, 0.38) 0 62%, transparent 63%),
-        radial-gradient(110px 42px at 21% 44%, rgba(85, 201, 159, 0.35) 0 62%, transparent 63%),
-        radial-gradient(120px 46px at 39% 22%, rgba(77, 187, 225, 0.34) 0 62%, transparent 63%),
-        radial-gradient(102px 40px at 58% 42%, rgba(85, 201, 159, 0.32) 0 62%, transparent 63%),
-        radial-gradient(118px 45px at 78% 24%, rgba(77, 187, 225, 0.34) 0 62%, transparent 63%),
-        radial-gradient(106px 42px at 93% 45%, rgba(85, 201, 159, 0.32) 0 62%, transparent 63%),
-        linear-gradient(180deg, transparent 0%, rgba(189, 238, 255, 0.46) 68%, rgba(255, 248, 232, 0.9) 100%);
+        radial-gradient(128px 36px at 7% 34%, rgba(189, 213, 189, 0.42) 0 62%, transparent 63%),
+        radial-gradient(142px 42px at 27% 50%, rgba(255, 201, 173, 0.34) 0 62%, transparent 63%),
+        radial-gradient(132px 40px at 48% 32%, rgba(255, 232, 173, 0.48) 0 62%, transparent 63%),
+        radial-gradient(152px 43px at 72% 48%, rgba(189, 213, 189, 0.38) 0 62%, transparent 63%),
+        radial-gradient(134px 38px at 94% 35%, rgba(255, 201, 173, 0.3) 0 62%, transparent 63%),
+        linear-gradient(180deg, transparent 0%, rgba(247, 223, 186, 0.74) 100%);
     }
 
     body::after {
       top: 0;
       height: 100%;
       background-image:
-        radial-gradient(circle, rgba(255, 158, 200, 0.28) 0 7px, transparent 8px),
-        radial-gradient(circle, rgba(85, 201, 159, 0.24) 0 6px, transparent 7px),
-        radial-gradient(circle, rgba(77, 187, 225, 0.22) 0 5px, transparent 6px);
-      background-position: 9% 28%, 76% 54%, 49% 12%;
-      background-size: 240px 260px, 310px 330px, 270px 290px;
-      opacity: 0.9;
+        radial-gradient(circle, rgba(200, 120, 94, 0.17) 0 5px, transparent 6px),
+        radial-gradient(circle, rgba(120, 155, 124, 0.18) 0 4px, transparent 5px),
+        radial-gradient(circle, rgba(255, 232, 173, 0.42) 0 6px, transparent 7px);
+      background-position: 9% 26%, 78% 50%, 51% 10%;
+      background-size: 250px 280px, 330px 350px, 280px 300px;
+      opacity: 0.72;
     }
 
     .app {
-      width: min(1080px, 100%);
+      width: min(1120px, 100%);
       display: grid;
-      gap: 18px;
+      gap: 20px;
+      position: relative;
     }
 
     header {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 16px;
+      gap: 18px;
       align-items: stretch;
     }
 
     .title-card,
     .camera-shell,
-    .status-panel {
-      border: 4px solid rgba(255, 255, 255, 0.95);
-      border-radius: 28px;
-      box-shadow: 0 20px 45px var(--shadow);
+    .tone-card,
+    .meter,
+    .hint,
+    .start-button,
+    .tone-chip {
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 32px;
+      box-shadow: 0 22px 55px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
     .title-card {
-      min-height: 106px;
-      padding: 18px 24px;
+      min-height: 132px;
+      padding: 22px 28px;
       background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.58)),
-        linear-gradient(135deg, var(--mint), var(--sky));
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 251, 239, 0.58)),
+        linear-gradient(135deg, var(--butter-soft), rgba(189, 213, 189, 0.58));
       display: grid;
       align-content: center;
+      gap: 12px;
       position: relative;
       overflow: hidden;
     }
 
     .title-card::after {
-      content: "🎈";
+      content: "";
       position: absolute;
-      right: 22px;
-      top: 12px;
-      font-size: clamp(2.1rem, 5vw, 3.8rem);
-      transform: rotate(10deg);
+      right: 28px;
+      top: 20px;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 32%, rgba(255, 255, 255, 0.82) 0 8px, transparent 9px),
+        linear-gradient(145deg, #ffd28b, #f6a578);
+      box-shadow: 0 14px 24px rgba(200, 120, 94, 0.18);
+      opacity: 0.9;
     }
 
     h1 {
       margin: 0;
-      font-size: clamp(2.2rem, 5vw, 4.5rem);
-      line-height: 0.95;
+      font-size: clamp(2.25rem, 5vw, 4.2rem);
+      line-height: 0.98;
       letter-spacing: 0;
       font-weight: 1000;
     }
 
     .title-mark {
-      color: #159d83;
+      color: var(--sage-deep);
     }
 
     .subtitle {
-      margin: 8px 0 0;
+      margin: 0;
       color: var(--soft-ink);
       font-weight: 850;
       font-size: 1.05rem;
     }
 
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav-pill,
+    .tone-chip {
+      align-items: center;
+      display: inline-flex;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      color: var(--soft-ink);
+      background: rgba(255, 255, 255, 0.56);
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 950;
+    }
+
+    .nav-icon,
+    .chip-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .nav-icon.home {
+      background: var(--sage);
+    }
+
+    .nav-icon.home::before {
+      content: "";
+      position: absolute;
+      inset: 5px 4px 4px;
+      border-radius: 5px;
+      background: var(--white);
+    }
+
+    .nav-icon.spark {
+      background: var(--butter);
+    }
+
+    .nav-icon.spark::before,
+    .nav-icon.spark::after,
+    .sparkle::before,
+    .sparkle::after {
+      content: "";
+      position: absolute;
+      background: var(--white);
+      border-radius: 999px;
+    }
+
+    .nav-icon.spark::before {
+      width: 12px;
+      height: 4px;
+      left: 4px;
+      top: 8px;
+    }
+
+    .nav-icon.spark::after {
+      width: 4px;
+      height: 12px;
+      left: 8px;
+      top: 4px;
+    }
+
     .start-button {
-      min-width: 178px;
-      min-height: 86px;
-      border: 4px solid var(--white);
-      border-radius: 28px;
-      padding: 0 24px;
-      color: #295069;
+      align-items: center;
+      align-self: stretch;
       background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.68), transparent 52%),
-        linear-gradient(135deg, var(--butter), var(--peach));
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 52%),
+        linear-gradient(135deg, var(--peach), var(--butter));
+      color: #65463a;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      min-height: 104px;
+      min-width: 188px;
+      padding: 0 26px;
       font: inherit;
-      font-size: 1.2rem;
+      font-size: 1.08rem;
       font-weight: 1000;
       cursor: pointer;
-      box-shadow: 0 10px 0 #f2a172, 0 20px 34px rgba(242, 161, 114, 0.24);
-      transition: transform 160ms ease, box-shadow 160ms ease;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .start-button::before {
+      content: "";
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background:
+        linear-gradient(90deg, transparent 0 43%, var(--white) 44% 56%, transparent 57%),
+        linear-gradient(0deg, transparent 0 43%, var(--white) 44% 56%, transparent 57%),
+        var(--sage-deep);
+      box-shadow: inset 0 -4px 0 rgba(74, 74, 63, 0.08);
     }
 
     .start-button:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 0 #f2a172, 0 22px 36px rgba(242, 161, 114, 0.28);
+      box-shadow: 0 28px 60px rgba(200, 120, 94, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.85);
     }
 
     .start-button:active {
-      transform: translateY(5px);
-      box-shadow: 0 5px 0 #f2a172, 0 14px 24px rgba(242, 161, 114, 0.22);
+      transform: translateY(2px);
     }
 
     .start-button:disabled {
@@ -181,47 +279,53 @@
 
     .stage-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 330px;
-      gap: 18px;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 20px;
       align-items: stretch;
     }
 
     .camera-shell {
       position: relative;
       overflow: hidden;
-      min-height: 430px;
+      min-height: 500px;
       display: grid;
       place-items: center;
       background:
-        linear-gradient(180deg, rgba(189, 238, 255, 0.7), rgba(191, 243, 220, 0.52)),
+        radial-gradient(circle at 52% 16%, rgba(255, 232, 173, 0.92) 0 74px, transparent 75px),
+        linear-gradient(180deg, rgba(255, 201, 173, 0.44) 0%, rgba(255, 240, 201, 0.72) 48%, rgba(189, 213, 189, 0.42) 100%),
         var(--white);
     }
 
     .camera-shell::before {
-      content: "🏄‍♂️ Surf Cam";
+      content: "Surf Cam";
       position: absolute;
-      left: 18px;
-      top: 16px;
+      left: 24px;
+      top: 22px;
       z-index: 4;
-      padding: 10px 14px;
-      border: 3px solid var(--white);
+      padding: 11px 16px 11px 44px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
       border-radius: 999px;
-      color: #286178;
-      background: var(--butter);
+      color: #65463a;
+      background:
+        radial-gradient(circle at 25px 50%, var(--sage-deep) 0 9px, transparent 10px),
+        rgba(255, 255, 255, 0.68);
       font-size: 0.92rem;
       font-weight: 1000;
-      box-shadow: 0 8px 18px rgba(85, 128, 143, 0.18);
+      box-shadow: 0 14px 28px var(--shadow-soft);
+      backdrop-filter: blur(12px);
     }
 
     canvas {
-      width: 100%;
-      height: 100%;
-      min-height: 430px;
+      width: calc(100% - 42px);
+      height: calc(100% - 42px);
+      min-height: 456px;
       display: block;
       object-fit: cover;
       background:
         radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.9) 0 8px, transparent 9px),
-        linear-gradient(180deg, #c9f2ff 0%, #e5fff3 52%, #fff0c7 100%);
+        linear-gradient(180deg, #ffd8b8 0%, #fff0c9 47%, #d6e6c8 100%);
+      border-radius: 38px;
+      box-shadow: inset 0 0 0 10px rgba(255, 251, 239, 0.42), 0 20px 50px rgba(136, 105, 73, 0.16);
     }
 
     video {
@@ -250,32 +354,33 @@
 
     .zone span {
       max-width: min(86%, 360px);
-      padding: 13px 18px;
-      border: 4px solid var(--white);
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.82);
-      box-shadow: 0 10px 22px rgba(67, 105, 119, 0.16);
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: 0 14px 30px var(--shadow-soft);
       text-align: center;
       font-size: clamp(1rem, 2vw, 1.22rem);
+      backdrop-filter: blur(10px);
     }
 
     .zone-high {
-      background: linear-gradient(180deg, rgba(189, 238, 255, 0.42), transparent 74%);
+      background: linear-gradient(180deg, rgba(255, 232, 173, 0.42), transparent 74%);
     }
 
     .zone-low {
-      border-top-color: rgba(77, 187, 225, 0.6);
-      background: linear-gradient(0deg, rgba(255, 231, 168, 0.48), transparent 74%);
+      border-top-color: rgba(200, 120, 94, 0.22);
+      background: linear-gradient(0deg, rgba(189, 213, 189, 0.45), transparent 74%);
     }
 
     .zone-overlay.high .zone-high {
-      border-color: rgba(77, 187, 225, 0.9);
-      background: rgba(189, 238, 255, 0.62);
+      border-color: rgba(255, 232, 173, 0.72);
+      background: rgba(255, 232, 173, 0.46);
     }
 
     .zone-overlay.low .zone-low {
-      border-color: rgba(255, 158, 200, 0.92);
-      background: rgba(255, 231, 168, 0.62);
+      border-color: rgba(120, 155, 124, 0.64);
+      background: rgba(189, 213, 189, 0.46);
     }
 
     .finger-dot {
@@ -286,8 +391,8 @@
       border: 5px solid var(--white);
       background:
         radial-gradient(circle at 38% 33%, rgba(255, 255, 255, 0.95) 0 5px, transparent 6px),
-        var(--rose);
-      box-shadow: 0 0 0 9px rgba(255, 158, 200, 0.24), 0 10px 20px rgba(87, 98, 120, 0.22);
+        var(--terracotta);
+      box-shadow: 0 0 0 9px rgba(200, 120, 94, 0.18), 0 10px 20px rgba(87, 98, 120, 0.18);
       translate: -50% -50%;
       pointer-events: none;
       opacity: 0;
@@ -300,32 +405,26 @@
     }
 
     .status-panel {
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
+      display: grid;
       gap: 14px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.64)),
-        linear-gradient(180deg, var(--mint), var(--cream));
+      align-content: start;
+      position: relative;
     }
 
     .tone-card {
-      min-height: 206px;
-      border: 4px solid var(--white);
-      border-radius: 26px;
-      padding: 20px;
+      min-height: 214px;
+      padding: 22px;
       background:
-        linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.58)),
-        var(--sky);
+        linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 251, 239, 0.58)),
+        linear-gradient(145deg, var(--white), var(--butter-soft));
       display: grid;
       align-content: center;
       gap: 12px;
-      box-shadow: inset 0 -10px 0 rgba(77, 187, 225, 0.16);
     }
 
     .status-label {
       margin: 0;
-      color: #338768;
+      color: var(--sage-deep);
       font-weight: 1000;
       font-size: 0.92rem;
     }
@@ -339,15 +438,60 @@
     }
 
     .status-text.high {
-      color: #1689bc;
+      color: var(--terracotta);
     }
 
     .status-text.low {
-      color: #d85593;
+      color: var(--sage-deep);
     }
 
     .status-text.neutral {
-      color: #da8a2e;
+      color: var(--peach-deep);
+    }
+
+    .tone-chips {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .tone-chip {
+      justify-content: center;
+      min-height: 58px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: 0 16px 34px var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+    }
+
+    .chip-icon.high {
+      background: var(--peach);
+    }
+
+    .chip-icon.high::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 10px;
+      width: 10px;
+      height: 10px;
+      border-left: 4px solid var(--white);
+      border-top: 4px solid var(--white);
+      transform: rotate(45deg);
+    }
+
+    .chip-icon.low {
+      background: var(--sage);
+    }
+
+    .chip-icon.low::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 3px;
+      width: 10px;
+      height: 10px;
+      border-right: 4px solid var(--white);
+      border-bottom: 4px solid var(--white);
+      transform: rotate(45deg);
     }
 
     .readout {
@@ -358,13 +502,10 @@
 
     .meter {
       min-height: 82px;
-      border: 4px solid var(--white);
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.74);
-      padding: 13px;
+      background: rgba(255, 255, 255, 0.62);
+      padding: 15px;
       color: var(--soft-ink);
       font-weight: 900;
-      box-shadow: 0 10px 22px rgba(70, 111, 124, 0.12);
     }
 
     .meter strong {
@@ -377,15 +518,91 @@
 
     .hint {
       margin: 0;
-      border: 4px solid var(--white);
-      border-radius: 24px;
-      padding: 14px;
+      padding: 16px;
       color: var(--ink);
-      background: rgba(255, 231, 168, 0.64);
+      background: rgba(255, 232, 173, 0.52);
       font-size: 1.04rem;
       font-weight: 820;
       line-height: 1.42;
-      box-shadow: 0 10px 22px rgba(70, 111, 124, 0.12);
+    }
+
+    .mascot {
+      position: absolute;
+      right: 28px;
+      bottom: 22px;
+      z-index: 4;
+      width: 92px;
+      height: 84px;
+      border-radius: 44px 44px 30px 30px;
+      background: var(--sage);
+      box-shadow: 0 18px 35px rgba(120, 155, 124, 0.22);
+      pointer-events: none;
+    }
+
+    .mascot::before,
+    .mascot::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--ink);
+      box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.42);
+    }
+
+    .mascot::before {
+      left: 24px;
+    }
+
+    .mascot::after {
+      right: 24px;
+    }
+
+    .mascot-smile {
+      position: absolute;
+      left: 34px;
+      top: 48px;
+      width: 24px;
+      height: 13px;
+      border-bottom: 4px solid rgba(74, 74, 63, 0.8);
+      border-radius: 0 0 999px 999px;
+    }
+
+    .sparkle {
+      position: absolute;
+      z-index: 3;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 232, 173, 0.72);
+      box-shadow: 0 12px 24px rgba(200, 120, 94, 0.12);
+      pointer-events: none;
+    }
+
+    .sparkle.one {
+      left: 8%;
+      bottom: 18%;
+    }
+
+    .sparkle.two {
+      right: 16%;
+      top: 22%;
+      transform: scale(0.78);
+    }
+
+    .sparkle::before {
+      width: 16px;
+      height: 4px;
+      left: 6px;
+      top: 12px;
+    }
+
+    .sparkle::after {
+      width: 4px;
+      height: 16px;
+      left: 12px;
+      top: 6px;
     }
 
     .celebrate {
@@ -424,8 +641,18 @@
         min-height: 54vh;
       }
 
+      canvas {
+        width: calc(100% - 26px);
+        height: calc(100% - 26px);
+      }
+
       .title-card::after {
         opacity: 0.38;
+      }
+
+      .mascot {
+        opacity: 0.58;
+        transform: scale(0.82);
       }
     }
   </style>
@@ -434,10 +661,14 @@
   <main class="app">
     <header>
       <section class="title-card" aria-label="ToneSurfer Mandarin title">
-        <h1><span class="title-mark">ToneSurfer</span> Mandarin 🌊</h1>
+        <div class="top-nav" aria-label="Practice overview">
+          <span class="nav-pill"><span class="nav-icon home" aria-hidden="true"></span> Tone Studio</span>
+          <span class="nav-pill"><span class="nav-icon spark" aria-hidden="true"></span> Level 1</span>
+        </div>
+        <h1><span class="title-mark">ToneSurfer</span> Mandarin</h1>
         <p class="subtitle">A playful beach game for practicing Mandarin tones</p>
       </section>
-      <button id="startButton" class="start-button">Start Surf 🏄‍♂️</button>
+      <button id="startButton" class="start-button">Start Surf</button>
     </header>
 
     <section class="stage-grid" aria-label="ToneSurfer Mandarin game">
@@ -445,31 +676,39 @@
         <video id="video" playsinline muted></video>
         <canvas id="canvas" width="960" height="540"></canvas>
         <div id="zoneOverlay" class="zone-overlay" aria-hidden="true">
-          <div class="zone zone-high"><span>🌊 Surf Up: High Tone</span></div>
-          <div class="zone zone-low"><span>📉 Dive Down: Low Tone</span></div>
+          <div class="zone zone-high"><span>Surf Up: High Tone</span></div>
+          <div class="zone zone-low"><span>Dive Down: Low Tone</span></div>
         </div>
         <div id="fingerDot" class="finger-dot" aria-hidden="true"></div>
+        <span class="sparkle one" aria-hidden="true"></span>
+        <span class="sparkle two" aria-hidden="true"></span>
+        <div class="mascot" aria-hidden="true"><span class="mascot-smile"></span></div>
       </div>
 
       <aside class="status-panel">
         <div id="toneCard" class="tone-card">
-          <p class="status-label">🎈 Beach Mission</p>
+          <p class="status-label">Beach Mission</p>
           <p id="statusText" class="status-text neutral">Surf up for High Tone</p>
           <div id="celebrateText" class="celebrate"></div>
         </div>
 
+        <div class="tone-chips" aria-label="Tone controls">
+          <div class="tone-chip"><span class="chip-icon high" aria-hidden="true"></span> High Tone</div>
+          <div class="tone-chip"><span class="chip-icon low" aria-hidden="true"></span> Low Tone</div>
+        </div>
+
         <div class="readout">
           <div class="meter">
-            ☝️ Finger Spot
+            Finger Spot
             <strong id="yReadout">--</strong>
           </div>
           <div class="meter">
-            🎵 Pitch
+            Pitch
             <strong id="pitchReadout">330Hz</strong>
           </div>
         </div>
 
-        <p class="hint">Point one finger up to sing HIGH: Mā. Point it down to sing LOW: Mà. Press H or L for demo mode.</p>
+        <p class="hint">Move one finger into the warm high zone for Ma and the sage low zone for Ma.</p>
       </aside>
     </section>
   </main>
@@ -497,18 +736,18 @@
 
     const TONES = {
       high: {
-        display: "HIGH wave: Mā 🌊",
+        display: "High wave: Ma",
         pitch: 440,
         wave: "sawtooth",
         className: "high",
-        celebration: "Robot surfer voice! 🤖"
+        celebration: "Beautiful lift"
       },
       low: {
-        display: "LOW wave: Mà 📉",
+        display: "Low wave: Ma",
         pitch: 220,
         wave: "sine",
         className: "low",
-        celebration: "Big splash low tone! 💦"
+        celebration: "Soft landing"
       },
       neutral: {
         display: "Surf up for High Tone",
@@ -587,21 +826,21 @@
         ctx.restore();
       } else {
         ctx.save();
-        ctx.fillStyle = "#d9f7ff";
+        ctx.fillStyle = "#fff0c9";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#fff7df";
+        ctx.fillStyle = "#bdd5bd";
         ctx.beginPath();
         ctx.arc(canvas.width * 0.5, canvas.height * 0.6, canvas.width * 0.35, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = "#55c99f";
+        ctx.fillStyle = "#789b7c";
         ctx.font = "bold 34px Quicksand, Nunito, sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Camera waves appear here", canvas.width / 2, canvas.height / 2);
+        ctx.fillText("Surf cam warming up", canvas.width / 2, canvas.height / 2);
         ctx.restore();
       }
 
       ctx.save();
-      ctx.strokeStyle = "rgba(77, 187, 225, 0.82)";
+      ctx.strokeStyle = "rgba(200, 120, 94, 0.42)";
       ctx.lineWidth = 5;
       ctx.setLineDash([18, 14]);
       ctx.beginPath();
@@ -620,7 +859,7 @@
     function applyTone(toneName, normalizedY, forced) {
       const tone = TONES[toneName];
 
-      statusText.textContent = forced ? `${tone.display} - Cheat!` : tone.display;
+      statusText.textContent = forced ? `${tone.display} demo` : tone.display;
       statusText.className = `status-text ${tone.className}`;
       celebrateText.textContent = tone.celebration;
       zoneOverlay.className = `zone-overlay ${toneName}`;
@@ -706,8 +945,8 @@
 
     startButton.addEventListener("click", async () => {
       startButton.disabled = true;
-      startButton.textContent = "Waxing Board...";
-      setStatus("Warming up surf cam...");
+      startButton.textContent = "Starting...";
+      setStatus("Warming up Surf Cam");
 
       try {
         if (!audioContext) setupAudio();
@@ -717,13 +956,13 @@
         await setupHandTracking();
 
         running = true;
-        startButton.textContent = "Surfing Now 🌊";
+        startButton.textContent = "Surfing Now";
         applyTone("neutral", null, false);
         detectLoop();
       } catch (error) {
         console.error(error);
         startButton.disabled = false;
-        startButton.textContent = "Start Surf 🏄‍♂️";
+        startButton.textContent = "Start Surf";
         statusText.className = "status-text neutral";
         setStatus("Surf cam needs permission");
         celebrateText.textContent = "Allow webcam access when the browser asks.";
