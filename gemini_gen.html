@@ -2,488 +2,87 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToneSurfer Mandarin 🌊</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Serif+SC:wght@700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
-
-    <script src="https://unpkg.com/ml5@1.2.0/dist/ml5.min.js"></script>
-
+    <title>Webcam Debugging Portal 🎥</title>
     <style>
-        :root {
-            --bg-color: #f7f9f6; 
-            --primary-color: #6ebca7; 
-            --accent-pink: #ffb4b4; 
-            --accent-yellow: #ffe699;
-            --text-dark: #334e43; 
-            --card-bg: #ffffff;
-        }
-
         body {
-            font-family: 'Quicksand', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 10px;
+            background-color: #222;
+            color: #fff;
+            font-family: sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            user-select: none;
+            margin: 0;
         }
-
-        .container {
-            max-width: 750px;
-            width: 100%;
-            text-align: center;
-        }
-
-        h1 {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 2.6rem;
-            color: var(--primary-color);
-            margin: 0 0 5px 0;
-        }
-
-        p.subtitle {
-            font-size: 1.1rem;
-            margin: 0 0 15px 0;
-            opacity: 0.8;
-        }
-
-        .game-layout {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-
-        /* Pure HTML Viewport Frame Box */
-        .video-viewport {
-            position: relative;
+        #box {
             width: 480px;
             height: 360px;
-            border-radius: 24px;
+            border: 4px solid #6ebca7;
+            background-color: #000;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 12px 24px rgba(51, 78, 67, 0.08);
-            border: 6px solid white;
-            background: #e2ede8;
+            transform: scaleX(-1); /* Mirrors the stream natively */
         }
-
-        /* Mirrored layout processing via hardware acceleration */
-        #webcam {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 480px;
-            height: 360px;
+        video {
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            transform: scaleX(-1);
-            z-index: 1;
         }
-
-        #game-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+        #log {
+            margin-top: 20px;
             width: 480px;
-            height: 360px;
-            z-index: 2;
-            pointer-events: none; /* Allows click through if necessary */
-        }
-
-        .sidebar-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 240px;
-        }
-
-        .card {
-            background: var(--card-bg);
+            background: #333;
             padding: 15px;
-            border-radius: 20px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.02);
-            border: 2px solid #eef3f0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #prompt-card {
-            min-height: 180px;
-        }
-
-        .chinese-char {
-            font-family: 'Noto Serif SC', serif;
-            font-size: 4.5rem;
-            margin: 0;
-            font-weight: 700;
-        }
-
-        .pinyin {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 1.4rem;
-            margin: 2px 0;
-            color: var(--primary-color);
-        }
-
-        .meaning {
-            font-size: 0.95rem;
-            margin: 0;
-            opacity: 0.7;
-        }
-
-        #status-card {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 1.2rem;
-            min-height: 60px;
-            text-align: center;
-        }
-
-        .btn {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 1.3rem;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 12px 35px;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 5px 0px #539d89;
-            transition: all 0.1s ease;
-        }
-
-        .btn:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0px #539d89;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .cheat-indicator {
-            font-size: 0.8rem;
-            opacity: 0.4;
-            margin-top: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            border-left: 5px solid #ffb4b4;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>ToneSurfer Mandarin 🌊</h1>
-        <p class="subtitle">Trace the pitch wave in the air to master tones!</p>
-
-        <div class="game-layout">
-            <div class="video-viewport">
-                <video id="webcam" autoplay playsinline muted width="480" height="360"></video>
-                <canvas id="game-canvas" width="480" height="360"></canvas>
-            </div>
-
-            <div class="sidebar-panel">
-                <div id="prompt-card" class="card">
-                    <p style="margin:0; font-size:0.85rem; font-weight:bold; opacity:0.5; text-transform:uppercase;">Target Word</p>
-                    <p id="ui-char" class="chinese-char">-</p>
-                    <p id="ui-pinyin" class="pinyin">-</p>
-                    <p id="ui-meaning" class="meaning">-</p>
-                </div>
-
-                <div id="status-card" class="card">
-                    Requesting camera hardware... 🎥
-                </div>
-            </div>
-        </div>
-
-        <button id="start-btn" class="btn">Start Game 🚀</button>
-        <button id="next-btn" class="btn hidden">Next Level ➡️</button>
-
-        <div class="cheat-indicator">
-            Presentation Fallbacks: Keys <strong>1, 2, 3, 4</strong> simulate instant execution wins for judges.
-        </div>
+    <h2>Camera Connection Diagnostic Tool</h2>
+    
+    <div id="box">
+        <video id="test-webcam" autoplay playsinline muted></video>
     </div>
 
+    <div id="log">Status: Initializing connection test...</div>
+
     <script>
-        const wordList = [
-            { char: "妈", pinyin: "mā", meaning: "Mother", tone: 1, baseFreq: 400 },
-            { char: "麻", pinyin: "má", meaning: "Hemp/Numb", tone: 2, baseFreq: 260 },
-            { char: "马", pinyin: "mǎ", meaning: "Horse", tone: 3, baseFreq: 350 },
-            { char: "骂", pinyin: "mà", meaning: "Scold", tone: 4, baseFreq: 400 }
-        ];
+        const video = document.getElementById('test-webcam');
+        const log = document.getElementById('log');
 
-        let currentLevel = 0;
-        let gameActive = false;
-        let tracingActive = false;
-        let countdownVal = 0;
-        let zoneHistory = [];
+        function updateLog(msg, isError = false) {
+            log.innerText = "Status: " + msg;
+            log.style.borderLeftColor = isError ? "#ff7b7b" : "#6ebca7";
+        }
 
-        // Audio variables
-        let audioCtx = null;
-        let oscillator = null;
-        let gainNode = null;
-        let audioInitialized = false;
-
-        // Hardware Pointers
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-
-        const startBtn = document.getElementById('start-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const uiChar = document.getElementById('ui-char');
-        const uiPinyin = document.getElementById('ui-pinyin');
-        const uiMeaning = document.getElementById('ui-meaning');
-        const statusCard = document.getElementById('status-card');
-
-        // 1. BOOTSTRAP HARDWARE VIA STANDARD HTML5 ENGINE
-        navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } })
-            .then(stream => {
+        // Standard web browser request loop
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ 
+                video: { width: 480, height: 360 } 
+            })
+            .then(function(stream) {
+                updateLog("Hardware connected! Streaming live frames straight to player...");
                 video.srcObject = stream;
-                statusCard.innerText = "Camera active! Connecting AI tracking... 🧠";
                 
-                // Fire tracking once video registers frames
-                video.onloadeddata = () => {
-                    initML5();
+                // Extra security handshake override for local files
+                video.onloadedmetadata = function() {
+                    video.play().catch(function(e) {
+                        updateLog("Browser blocked auto-play policy: " + e.message, true);
+                    });
                 };
             })
-            .catch(err => {
-                console.error(err);
-                statusCard.innerText = "❌ Hardware connection error. Try reopening the file.";
+            .catch(function(error) {
+                console.error(error);
+                updateLog("Hardware connection failed. Error Name: " + error.name + " | Message: " + error.message, true);
             });
-
-        function initML5() {
-            const handpose = ml5.handpose(video, () => {
-                statusCard.innerText = "AI Tracking Active! Click 'Start Game' to surf! 🏄‍♂️";
-            });
-
-            handpose.on('hand', results => {
-                handleTracking(results);
-            });
-            
-            // Start rendering overlays
-            requestAnimationFrame(renderLoop);
+        } else {
+            updateLog("Your browser version does not support camera API requests.", true);
         }
-
-        // 2. MAIN TICK HUD OVERLAY PROCESSOR
-        function renderLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            if (gameActive) {
-                // Draw horizontal split guidelines
-                ctx.strokeStyle = 'rgba(110, 188, 167, 0.7)';
-                ctx.lineWidth = 4;
-                ctx.setLineDash([8, 8]);
-                ctx.beginPath();
-                ctx.moveTo(0, canvas.height / 2);
-                ctx.lineTo(canvas.width, canvas.height / 2);
-                ctx.stroke();
-                ctx.setLineDash([]);
-
-                // Overlay Text Guides
-                ctx.fillStyle = 'rgba(51, 78, 67, 0.6)';
-                ctx.font = 'bold 12px Quicksand, sans-serif';
-                ctx.fillText("TOP ZONE (HIGH PITCH)", 15, 25);
-                ctx.fillText("BOTTOM ZONE (LOW PITCH)", 15, canvas.height - 15);
-            }
-
-            // Countdown Rendering
-            if (countdownVal > 0) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                ctx.fillStyle = '#6ebca7';
-                ctx.font = 'bold 60px Fredoka, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(countdownVal, canvas.width / 2, canvas.height / 2);
-            }
-
-            requestAnimationFrame(renderLoop);
-        }
-
-        // 3. MOTION TRACKING & INTERPOLATION CALCULATIONS
-        function handleTracking(hands) {
-            if (hands.length > 0 && tracingActive) {
-                let hand = hands[0];
-                let indexFinger = hand.landmarks[8];
-                let x = indexFinger[0];
-                let y = indexFinger[1];
-
-                // Render Tracking Visualizers manually onto standard canvas layer
-                ctx.save();
-                ctx.fillStyle = '#ff7b7b';
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                // Flip X drawing axis position coordinates cleanly across center row to match CSS mirror
-                ctx.arc(canvas.width - x, y, 11, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
-
-                // continuous oscillator synthesizer mappings
-                let normalizedY = y / canvas.height;
-                let calculatedFreq = 466 - (normalizedY * (466 - 220)); // Inverse lerp bounds
-                setPitch(calculatedFreq);
-
-                let currentZone = (y < canvas.height / 2) ? "Top" : "Bottom";
-                if (zoneHistory.length === 0 || zoneHistory[zoneHistory.length - 1] !== currentZone) {
-                    zoneHistory.push(currentZone);
-                }
-            }
-        }
-
-        // 4. INSTRUMENT SYNTH AUDIO COMPONENT ENGINE
-        function initAudio() {
-            if (audioInitialized) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            oscillator = audioCtx.createOscillator();
-            gainNode = audioCtx.createGain();
-
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(330, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-            audioInitialized = true;
-        }
-
-        function setPitch(frequency) {
-            if (!audioInitialized) return;
-            oscillator.frequency.linearRampToValueAtTime(frequency, audioCtx.currentTime + 0.05);
-        }
-
-        function setVolume(val) {
-            if (!audioInitialized) return;
-            gainNode.gain.linearRampToValueAtTime(val, audioCtx.currentTime + 0.05);
-        }
-
-        // 5. GAME LEVEL LOGIC CONTROL ROUTINES
-        function loadLevel(index) {
-            currentLevel = index;
-            let word = wordList[currentLevel];
-
-            uiChar.innerText = word.char;
-            uiPinyin.innerText = word.pinyin;
-            uiMeaning.innerText = `meaning: ${word.meaning}`;
-            
-            nextBtn.classList.add('hidden');
-            zoneHistory = [];
-            
-            playPromptCue(word.baseFreq, word.tone);
-        }
-
-        function playPromptCue(base, tone) {
-            initAudio();
-            setVolume(0.15);
-
-            let now = audioCtx.currentTime;
-            oscillator.frequency.cancelScheduledValues(now);
-
-            if (tone === 1) { 
-                oscillator.frequency.setValueAtTime(base, now);
-                oscillator.frequency.setValueAtTime(base, now + 0.6);
-            } else if (tone === 2) { 
-                oscillator.frequency.setValueAtTime(base - 50, now);
-                oscillator.frequency.exponentialRampToValueAtTime(base + 80, now + 0.6);
-            } else if (tone === 3) { 
-                oscillator.frequency.setValueAtTime(base, now);
-                oscillator.frequency.exponentialRampToValueAtTime(base - 80, now + 0.25);
-                oscillator.frequency.exponentialRampToValueAtTime(base + 60, now + 0.6);
-            } else if (tone === 4) { 
-                oscillator.frequency.setValueAtTime(base + 100, now);
-                oscillator.frequency.exponentialRampToValueAtTime(base - 100, now + 0.5);
-            }
-
-            gainNode.gain.setValueAtTime(0.15, now + 0.5);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-            
-            setTimeout(() => {
-                statusCard.innerText = "Get Ready to Trace... 🧘‍♂️";
-                runTimerSequence(3);
-            }, 900);
-        }
-
-        function runTimerSequence(seconds) {
-            countdownVal = seconds;
-            let timer = setInterval(() => {
-                countdownVal--;
-                if (countdownVal <= 0) {
-                    clearInterval(timer);
-                    startTracingWindow();
-                }
-            }, 1000);
-        }
-
-        function startTracingWindow() {
-            tracingActive = true;
-            setVolume(0.15); 
-            statusCard.innerText = "SURF NOW! Draw the wave track! 🏄‍♂️✨";
-            statusCard.style.backgroundColor = "#ffe699"; 
-
-            setTimeout(() => {
-                evaluateTracedResult();
-            }, 2500);
-        }
-
-        function evaluateTracedResult() {
-            tracingActive = false;
-            setVolume(0); 
-            statusCard.style.backgroundColor = "#ffffff";
-
-            let targetTone = wordList[currentLevel].tone;
-            let detectedTone = 0;
-            let pattern = zoneHistory.join("->");
-
-            if (pattern === "Top") {
-                detectedTone = 1;
-            } else if (pattern === "Bottom->Top") {
-                detectedTone = 2;
-            } else if (pattern === "Top->Bottom->Top") {
-                detectedTone = 3;
-            } else if (pattern === "Top->Bottom") {
-                detectedTone = 4;
-            }
-
-            if (detectedTone === targetTone) {
-                statusCard.innerText = "🌟 PERFECT TONE! Excellent Curve! 🌟";
-                statusCard.style.backgroundColor = "#eefbeb"; 
-                nextBtn.classList.remove('hidden');
-            } else {
-                statusCard.innerText = "❌ Curve didn't match. Let's try that level again! 🌊";
-                statusCard.style.backgroundColor = "#ffebeb"; 
-                setTimeout(() => loadLevel(currentLevel), 2500); 
-            }
-        }
-
-        startBtn.addEventListener('click', () => {
-            gameActive = true;
-            startBtn.classList.add('hidden');
-            loadLevel(0);
-        });
-
-        nextBtn.addEventListener('click', () => {
-            let nextIndex = (currentLevel + 1) % wordList.length;
-            loadLevel(nextIndex);
-        });
-
-        window.addEventListener('keydown', (e) => {
-            if (!gameActive || !tracingActive) return;
-            let key = e.key;
-
-            if (key === '1') { zoneHistory = ["Top"]; evaluateTracedResult(); }
-            if (key === '2') { zoneHistory = ["Bottom", "Top"]; evaluateTracedResult(); }
-            if (key === '3') { zoneHistory = ["Top", "Bottom", "Top"]; evaluateTracedResult(); }
-            if (key === '4') { zoneHistory = ["Top", "Bottom"]; evaluateTracedResult(); }
-        });
     </script>
 </body>
 </html>
