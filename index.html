@@ -348,7 +348,7 @@
 
     .zone {
       position: relative;
-      border: 4px dashed transparent;
+      border: 0;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -374,7 +374,6 @@
     }
 
     .zone-low {
-      border-top-color: rgba(2, 48, 71, 0.22);
       background: linear-gradient(0deg, rgba(142, 202, 230, 0.45), transparent 74%);
     }
 
@@ -497,6 +496,121 @@
       border-right: 4px solid var(--white);
       border-bottom: 4px solid var(--white);
       transform: rotate(45deg);
+    }
+
+    .level-panel {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 32px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 248, 232, 0.56)),
+        rgba(142, 202, 230, 0.18);
+      box-shadow: 0 16px 34px var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+    }
+
+    .level-header,
+    .word-list {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .level-name,
+    .level-progress,
+    .word-dot {
+      border-radius: 999px;
+      color: var(--deep-space-blue);
+      font-size: 0.86rem;
+      font-weight: 1000;
+      padding: 8px 11px;
+    }
+
+    .level-name {
+      background: rgba(142, 202, 230, 0.34);
+    }
+
+    .level-progress {
+      background: rgba(255, 183, 3, 0.22);
+    }
+
+    .word-card {
+      align-items: center;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .hanzi {
+      display: grid;
+      place-items: center;
+      width: 66px;
+      height: 66px;
+      border-radius: 24px;
+      color: var(--white);
+      background: linear-gradient(145deg, var(--blue-green), var(--deep-space-blue));
+      font-size: 2.2rem;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    .word-copy {
+      min-width: 0;
+    }
+
+    .pinyin {
+      display: block;
+      color: var(--deep-space-blue);
+      font-size: 1.6rem;
+      font-weight: 1000;
+      line-height: 1.05;
+    }
+
+    .word-tone {
+      display: block;
+      margin-top: 5px;
+      color: var(--soft-ink);
+      font-size: 0.92rem;
+      font-weight: 900;
+    }
+
+    .word-list {
+      justify-content: flex-start;
+    }
+
+    .word-dot {
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--soft-ink);
+    }
+
+    .word-dot.active {
+      background: rgba(255, 183, 3, 0.28);
+      color: var(--deep-space-blue);
+    }
+
+    .word-dot.done {
+      background: rgba(33, 158, 188, 0.2);
+      color: var(--blue-green);
+    }
+
+    .audio-button {
+      border: 0;
+      border-radius: 999px;
+      min-height: 46px;
+      color: var(--white);
+      background: linear-gradient(145deg, var(--blue-green), var(--deep-space-blue));
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 1000;
+      padding: 10px 14px;
+      box-shadow: 0 14px 28px rgba(2, 48, 71, 0.16);
     }
 
     .readout {
@@ -697,6 +811,22 @@
           <div id="celebrateText" class="celebrate"></div>
         </div>
 
+        <div class="level-panel" aria-label="Current level">
+          <div class="level-header">
+            <span id="levelName" class="level-name">Level 1</span>
+            <span id="levelProgress" class="level-progress">1 / 3</span>
+          </div>
+          <div class="word-card">
+            <span id="wordHanzi" class="hanzi">妈</span>
+            <span class="word-copy">
+              <span id="wordPinyin" class="pinyin">ma</span>
+              <span id="wordTone" class="word-tone">High tone: surf up</span>
+            </span>
+          </div>
+          <div id="wordList" class="word-list" aria-label="Level words"></div>
+          <button id="playWordButton" class="audio-button" type="button">Play Word</button>
+        </div>
+
         <div class="tone-chips" aria-label="Tone controls">
           <div class="tone-chip"><span class="chip-icon high" aria-hidden="true"></span> High Tone</div>
           <div class="tone-chip"><span class="chip-icon low" aria-hidden="true"></span> Low Tone</div>
@@ -713,7 +843,7 @@
           </div>
         </div>
 
-        <p class="hint">Move one finger into the warm high zone for Ma and the sage low zone for Ma.</p>
+        <p class="hint">Level 1 practices ma, ni, and hao. Listen first, then move your finger into the matching tone zone.</p>
       </aside>
     </section>
   </main>
@@ -730,6 +860,13 @@
     const yReadout = document.getElementById("yReadout");
     const pitchReadout = document.getElementById("pitchReadout");
     const toneCard = document.getElementById("toneCard");
+    const levelName = document.getElementById("levelName");
+    const levelProgress = document.getElementById("levelProgress");
+    const wordHanzi = document.getElementById("wordHanzi");
+    const wordPinyin = document.getElementById("wordPinyin");
+    const wordTone = document.getElementById("wordTone");
+    const wordList = document.getElementById("wordList");
+    const playWordButton = document.getElementById("playWordButton");
 
     let detector = null;
     let audioContext = null;
@@ -738,17 +875,44 @@
     let running = false;
     let cheatTone = null;
     let cheatTimer = null;
+    let currentLevelIndex = 0;
+    let currentWordIndex = 0;
+    let matchStartedAt = 0;
+    let advancingWord = false;
+    let levelComplete = false;
+
+    const LEVELS = [
+      {
+        name: "Level 1",
+        mission: "First greetings",
+        words: [
+          { pinyin: "ma", hanzi: "妈", target: "high", prompt: "High tone: surf up" },
+          { pinyin: "ni", hanzi: "你", target: "low", prompt: "Low tone: dive down" },
+          { pinyin: "hao", hanzi: "好", target: "low", prompt: "Low tone: dive down" }
+        ]
+      },
+      {
+        name: "Level 2",
+        mission: "Coming soon",
+        words: []
+      },
+      {
+        name: "Level 3",
+        mission: "Coming soon",
+        words: []
+      }
+    ];
 
     const TONES = {
       high: {
-        display: "High wave: Ma",
+        display: "High wave",
         pitch: 440,
         wave: "sawtooth",
         className: "high",
         celebration: "Beautiful lift"
       },
       low: {
-        display: "Low wave: Ma",
+        display: "Low wave",
         pitch: 220,
         wave: "sine",
         className: "low",
@@ -765,6 +929,122 @@
 
     function setStatus(message) {
       statusText.textContent = message;
+    }
+
+    function currentLevel() {
+      return LEVELS[currentLevelIndex];
+    }
+
+    function currentWord() {
+      return currentLevel().words[currentWordIndex];
+    }
+
+    function renderLevel() {
+      const level = currentLevel();
+      const word = currentWord();
+
+      levelName.textContent = `${level.name}: ${level.mission}`;
+      levelProgress.textContent = `${Math.min(currentWordIndex + 1, level.words.length)} / ${level.words.length}`;
+      wordHanzi.textContent = word.hanzi;
+      wordPinyin.textContent = word.pinyin;
+      wordTone.textContent = word.prompt;
+
+      wordList.innerHTML = "";
+      level.words.forEach((levelWord, index) => {
+        const marker = document.createElement("span");
+        marker.className = "word-dot";
+        if (index < currentWordIndex || levelComplete) marker.classList.add("done");
+        if (index === currentWordIndex && !levelComplete) marker.classList.add("active");
+        marker.textContent = levelWord.pinyin;
+        wordList.appendChild(marker);
+      });
+    }
+
+    function speakCurrentWord() {
+      const word = currentWord();
+      if (!word || !("speechSynthesis" in window)) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word.hanzi);
+      utterance.lang = "zh-CN";
+      utterance.rate = 0.82;
+      utterance.pitch = word.target === "high" ? 1.14 : 0.92;
+      if (gainNode && audioContext) {
+        gainNode.gain.setTargetAtTime(0.01, audioContext.currentTime, 0.04);
+        utterance.onend = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+        utterance.onerror = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+      }
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function startLevel(index = 0) {
+      currentLevelIndex = index;
+      currentWordIndex = 0;
+      matchStartedAt = 0;
+      advancingWord = false;
+      levelComplete = false;
+      renderLevel();
+      statusText.className = "status-text neutral";
+      setStatus(`Listen: ${currentWord().pinyin}`);
+      celebrateText.textContent = "Hear the word, then surf the tone.";
+      speakCurrentWord();
+    }
+
+    function completeCurrentWord() {
+      if (advancingWord || levelComplete) return;
+
+      const level = currentLevel();
+      const word = currentWord();
+      advancingWord = true;
+      matchStartedAt = 0;
+      statusText.textContent = `${word.pinyin} complete`;
+      celebrateText.textContent = "Nice tone match.";
+
+      setTimeout(() => {
+        currentWordIndex += 1;
+
+        if (currentWordIndex >= level.words.length) {
+          levelComplete = true;
+          advancingWord = false;
+          renderLevel();
+          statusText.className = "status-text high";
+          statusText.textContent = "Level 1 complete";
+          celebrateText.textContent = "You practiced ma, ni, and hao.";
+          startButton.disabled = false;
+          startButton.textContent = "Replay Level";
+          return;
+        }
+
+        advancingWord = false;
+        renderLevel();
+        statusText.className = "status-text neutral";
+        setStatus(`Listen: ${currentWord().pinyin}`);
+        celebrateText.textContent = "New word. Listen, then move.";
+        speakCurrentWord();
+      }, 900);
+    }
+
+    function checkWordMatch(toneName) {
+      if (!running || advancingWord || levelComplete || toneName === "neutral") {
+        matchStartedAt = 0;
+        return;
+      }
+
+      const word = currentWord();
+      if (toneName !== word.target) {
+        matchStartedAt = 0;
+        return;
+      }
+
+      const now = performance.now();
+      if (!matchStartedAt) {
+        matchStartedAt = now;
+        return;
+      }
+
+      if (now - matchStartedAt > 900) {
+        completeCurrentWord();
+      }
     }
 
     function resizeCanvasToVideo() {
@@ -813,7 +1093,7 @@
 
       oscillator.type = "sine";
       oscillator.frequency.value = 330;
-      gainNode.gain.value = 0.12;
+      gainNode.gain.value = 0.06;
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       oscillator.start();
@@ -844,15 +1124,6 @@
         ctx.restore();
       }
 
-      ctx.save();
-      ctx.strokeStyle = "rgba(251, 133, 0, 0.42)";
-      ctx.lineWidth = 5;
-      ctx.setLineDash([18, 14]);
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height * 0.5);
-      ctx.lineTo(canvas.width, canvas.height * 0.5);
-      ctx.stroke();
-      ctx.restore();
     }
 
     function toneFromY(normalizedY) {
@@ -863,10 +1134,23 @@
 
     function applyTone(toneName, normalizedY, forced) {
       const tone = TONES[toneName];
+      const word = currentWord();
+      const matched = word && toneName === word.target && toneName !== "neutral";
 
-      statusText.textContent = forced ? `${tone.display} demo` : tone.display;
+      if (!advancingWord && !levelComplete) {
+        if (matched) {
+          statusText.textContent = `${word.pinyin}: ${tone.display}`;
+          celebrateText.textContent = "Hold it there.";
+        } else if (toneName === "neutral") {
+          statusText.textContent = `Say ${word.pinyin}`;
+          celebrateText.textContent = word.prompt;
+        } else {
+          statusText.textContent = forced ? `${tone.display} demo` : tone.display;
+          celebrateText.textContent = `Try the ${word.target} zone for ${word.pinyin}.`;
+        }
+      }
+
       statusText.className = `status-text ${tone.className}`;
-      celebrateText.textContent = tone.celebration;
       zoneOverlay.className = `zone-overlay ${toneName}`;
       yReadout.textContent = typeof normalizedY === "number" ? normalizedY.toFixed(2) : "--";
       pitchReadout.textContent = `${tone.pitch}Hz`;
@@ -929,11 +1213,11 @@
         }
       }
 
-      if (cheatTone) {
-        applyTone(cheatTone, cheatTone === "high" ? 0.12 : 0.88, true);
-      } else {
-        applyTone(detectedTone, normalizedY, false);
-      }
+      const activeTone = cheatTone || detectedTone;
+      const activeY = cheatTone ? (cheatTone === "high" ? 0.12 : 0.88) : normalizedY;
+
+      applyTone(activeTone, activeY, Boolean(cheatTone));
+      checkWordMatch(activeTone);
 
       requestAnimationFrame(detectLoop);
     }
@@ -949,6 +1233,13 @@
     }
 
     startButton.addEventListener("click", async () => {
+      if (running && levelComplete) {
+        startButton.disabled = true;
+        startButton.textContent = "Surfing Now";
+        startLevel(0);
+        return;
+      }
+
       startButton.disabled = true;
       startButton.textContent = "Starting...";
       setStatus("Warming up Surf Cam");
@@ -962,7 +1253,7 @@
 
         running = true;
         startButton.textContent = "Surfing Now";
-        applyTone("neutral", null, false);
+        startLevel(0);
         detectLoop();
       } catch (error) {
         console.error(error);
@@ -972,6 +1263,10 @@
         setStatus("Surf cam needs permission");
         celebrateText.textContent = "Allow webcam access when the browser asks.";
       }
+    });
+
+    playWordButton.addEventListener("click", () => {
+      speakCurrentWord();
     });
 
     window.addEventListener("keydown", (event) => {
@@ -987,6 +1282,7 @@
     });
 
     drawCameraFrame();
+    renderLevel();
     applyTone("neutral", null, false);
   </script>
 </body>
