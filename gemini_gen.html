@@ -9,7 +9,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Serif+SC:wght@700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
     <script src="https://unpkg.com/ml5@1.2.0/dist/ml5.min.js"></script>
 
     <style>
@@ -63,7 +62,8 @@
             margin-bottom: 15px;
         }
 
-        #canvas-container {
+        /* Pure HTML Viewport Frame Box */
+        .video-viewport {
             position: relative;
             width: 480px;
             height: 360px;
@@ -72,6 +72,28 @@
             box-shadow: 0 12px 24px rgba(51, 78, 67, 0.08);
             border: 6px solid white;
             background: #e2ede8;
+        }
+
+        /* Mirrored layout processing via hardware acceleration */
+        #webcam {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 480px;
+            height: 360px;
+            object-fit: cover;
+            transform: scaleX(-1);
+            z-index: 1;
+        }
+
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 480px;
+            height: 360px;
+            z-index: 2;
+            pointer-events: none; /* Allows click through if necessary */
         }
 
         .sidebar-panel {
@@ -160,7 +182,10 @@
         <p class="subtitle">Trace the pitch wave in the air to master tones!</p>
 
         <div class="game-layout">
-            <div id="canvas-container"></div>
+            <div class="video-viewport">
+                <video id="webcam" autoplay playsinline muted width="480" height="360"></video>
+                <canvas id="game-canvas" width="480" height="360"></canvas>
+            </div>
 
             <div class="sidebar-panel">
                 <div id="prompt-card" class="card">
@@ -171,7 +196,7 @@
                 </div>
 
                 <div id="status-card" class="card">
-                    Waiting for camera approval... 🎥
+                    Requesting camera hardware... 🎥
                 </div>
             </div>
         </div>
@@ -193,19 +218,21 @@
         ];
 
         let currentLevel = 0;
-        let videoElement; // Raw video pointer
-        let videoTexture;  // p5 graphics reference wrapper
-        let handpose;
-        let hands = [];
         let gameActive = false;
         let tracingActive = false;
-        let countdownTime = 0;
-        let zoneHistory = []; 
+        let countdownVal = 0;
+        let zoneHistory = [];
 
+        // Audio variables
         let audioCtx = null;
         let oscillator = null;
         let gainNode = null;
         let audioInitialized = false;
+
+        // Hardware Pointers
+        const video = document.getElementById('webcam');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
 
         const startBtn = document.getElementById('start-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -214,122 +241,105 @@
         const uiMeaning = document.getElementById('ui-meaning');
         const statusCard = document.getElementById('status-card');
 
-        function setup() {
-            let cnv = createCanvas(480, 360);
-            cnv.parent('canvas-container');
-            background('#e2ede8');
-
-            // FORCE AN IMPERATIVE NATIVE WEBCAM CALL WITH CONSTRAINT FALLBACKS
-            navigator.mediaDevices.getUserMedia({ 
-                video: { width: 480, height: 360, facingMode: "user" } 
-            })
-            .then((stream) => {
-                statusCard.innerText = "Camera linked! Initializing AI tracking module... 🧠";
+        // 1. BOOTSTRAP HARDWARE VIA STANDARD HTML5 ENGINE
+        navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } })
+            .then(stream => {
+                video.srcObject = stream;
+                statusCard.innerText = "Camera active! Connecting AI tracking... 🧠";
                 
-                // Build a hidden raw HTML video element manually to secure stream piping
-                videoElement = document.createElement('video');
-                videoElement.srcObject = stream;
-                videoElement.width = 480;
-                videoElement.height = 360;
-                videoElement.autoplay = true;
-                videoElement.playsInline = true;
-                videoElement.muted = true;
-                
-                // Wrap it into a p5 graphic frame element so p5 can draw it inside draw()
-                videoTexture = createVideo();
-                videoTexture.elt.srcObject = stream;
-                videoTexture.hide();
-
-                // Kickstart ml5 on our raw stream
-                initML5Handpose(videoElement);
+                // Fire tracking once video registers frames
+                video.onloadeddata = () => {
+                    initML5();
+                };
             })
-            .catch((err) => {
+            .catch(err => {
                 console.error(err);
-                statusCard.innerText = "❌ Camera Blocked! Click the camera icon in your Chrome URL bar to allow access.";
+                statusCard.innerText = "❌ Hardware connection error. Try reopening the file.";
             });
-        }
 
-        function initML5Handpose(videoSrc) {
-            handpose = ml5.handpose(videoSrc, () => {
+        function initML5() {
+            const handpose = ml5.handpose(video, () => {
                 statusCard.innerText = "AI Tracking Active! Click 'Start Game' to surf! 🏄‍♂️";
             });
 
-            handpose.on('hand', (results) => {
-                hands = results;
+            handpose.on('hand', results => {
+                handleTracking(results);
             });
+            
+            // Start rendering overlays
+            requestAnimationFrame(renderLoop);
         }
 
-        function draw() {
-            // Actively draw the texture frame to canvas if stream successfully fired
-            if (videoTexture && videoTexture.elt.readyState >= 2) {
-                push();
-                translate(width, 0);
-                scale(-1, 1);
-                image(videoTexture, 0, 0, width, height);
-                pop();
-            } else {
-                background('#e2ede8');
+        // 2. MAIN TICK HUD OVERLAY PROCESSOR
+        function renderLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameActive) {
+                // Draw horizontal split guidelines
+                ctx.strokeStyle = 'rgba(110, 188, 167, 0.7)';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([8, 8]);
+                ctx.beginPath();
+                ctx.moveTo(0, canvas.height / 2);
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Overlay Text Guides
+                ctx.fillStyle = 'rgba(51, 78, 67, 0.6)';
+                ctx.font = 'bold 12px Quicksand, sans-serif';
+                ctx.fillText("TOP ZONE (HIGH PITCH)", 15, 25);
+                ctx.fillText("BOTTOM ZONE (LOW PITCH)", 15, canvas.height - 15);
             }
 
-            if (!gameActive) return;
+            // Countdown Rendering
+            if (countdownVal > 0) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.fillStyle = '#6ebca7';
+                ctx.font = 'bold 60px Fredoka, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(countdownVal, canvas.width / 2, canvas.height / 2);
+            }
 
-            // Draw horizontal split lines
-            stroke('rgba(110, 188, 167, 0.6)');
-            strokeWeight(4);
-            drawingContext.setLineDash([8, 8]);
-            line(0, height / 2, width, height / 2); 
-            drawingContext.setLineDash([]); 
+            requestAnimationFrame(renderLoop);
+        }
 
-            noStroke();
-            fill('rgba(51, 78, 67, 0.6)');
-            textSize(12);
-            textAlign(LEFT);
-            text("TOP ZONE (HIGH PITCH)", 15, 25);
-            text("BOTTOM ZONE (LOW PITCH)", 15, height - 15);
-
-            // Finger interpolation math
+        // 3. MOTION TRACKING & INTERPOLATION CALCULATIONS
+        function handleTracking(hands) {
             if (hands.length > 0 && tracingActive) {
                 let hand = hands[0];
-                let indexFinger = hand.landmarks[8]; 
+                let indexFinger = hand.landmarks[8];
                 let x = indexFinger[0];
                 let y = indexFinger[1];
 
-                let mirroredX = width - x;
+                // Render Tracking Visualizers manually onto standard canvas layer
+                ctx.save();
+                ctx.fillStyle = '#ff7b7b';
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                // Flip X drawing axis position coordinates cleanly across center row to match CSS mirror
+                ctx.arc(canvas.width - x, y, 11, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
 
-                fill('#ff7b7b');
-                stroke('#ffffff');
-                strokeWeight(3);
-                ellipse(mirroredX, y, 22, 22);
-
-                let normalizedY = y / height; 
-                let calculatedFreq = lerp(466, 220, normalizedY);
+                // continuous oscillator synthesizer mappings
+                let normalizedY = y / canvas.height;
+                let calculatedFreq = 466 - (normalizedY * (466 - 220)); // Inverse lerp bounds
                 setPitch(calculatedFreq);
 
-                let currentZone = (y < height / 2) ? "Top" : "Bottom";
-                
+                let currentZone = (y < canvas.height / 2) ? "Top" : "Bottom";
                 if (zoneHistory.length === 0 || zoneHistory[zoneHistory.length - 1] !== currentZone) {
                     zoneHistory.push(currentZone);
                 }
             }
-
-            if (countdownTime > 0) {
-                push();
-                fill('rgba(255, 255, 255, 0.85)');
-                rect(0, 0, width, height);
-                
-                fill('#6ebca7');
-                textSize(60);
-                textAlign(CENTER, CENTER);
-                text(Math.ceil(countdownTime / 60), width / 2, height / 2);
-                countdownTime--;
-                pop();
-
-                if (countdownTime === 0) {
-                    startTracingWindow();
-                }
-            }
         }
 
+        // 4. INSTRUMENT SYNTH AUDIO COMPONENT ENGINE
         function initAudio() {
             if (audioInitialized) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -338,7 +348,7 @@
 
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(330, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime); 
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
 
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
@@ -351,11 +361,12 @@
             oscillator.frequency.linearRampToValueAtTime(frequency, audioCtx.currentTime + 0.05);
         }
 
-        function setVolume(volumeValue) {
+        function setVolume(val) {
             if (!audioInitialized) return;
-            gainNode.gain.linearRampToValueAtTime(volumeValue, audioCtx.currentTime + 0.05);
+            gainNode.gain.linearRampToValueAtTime(val, audioCtx.currentTime + 0.05);
         }
 
+        // 5. GAME LEVEL LOGIC CONTROL ROUTINES
         function loadLevel(index) {
             currentLevel = index;
             let word = wordList[currentLevel];
@@ -397,8 +408,19 @@
             
             setTimeout(() => {
                 statusCard.innerText = "Get Ready to Trace... 🧘‍♂️";
-                countdownTime = 120; 
+                runTimerSequence(3);
             }, 900);
+        }
+
+        function runTimerSequence(seconds) {
+            countdownVal = seconds;
+            let timer = setInterval(() => {
+                countdownVal--;
+                if (countdownVal <= 0) {
+                    clearInterval(timer);
+                    startTracingWindow();
+                }
+            }, 1000);
         }
 
         function startTracingWindow() {
@@ -443,10 +465,6 @@
         }
 
         startBtn.addEventListener('click', () => {
-            if (!videoTexture) {
-                statusCard.innerText = "⚠️ Camera stream not found yet. Please check permissions.";
-                return;
-            }
             gameActive = true;
             startBtn.classList.add('hidden');
             loadLevel(0);
