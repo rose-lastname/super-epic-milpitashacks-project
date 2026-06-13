@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Serif+SC:wght@700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
 
-    <script src="https://unpkg.com/ml5@1.2.0/dist/ml5.min.js"></script>
+    <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
 
     <style>
         :root {
@@ -243,6 +243,7 @@
         ];
 
         let currentLevel = 0;
+        let yHistory = [];
         let gameActive = false;
         let tracingActive = false;
         let countdownVal = 0;
@@ -381,34 +382,34 @@
         }
 
         // SIGNAL PROCESSING ENGINE
-// --- FIXED MIRROR ALIGNMENT PROCESSING ENGINE ---
         function handleTracking(hands) {
+            console.log("hands detected:", hands.length, "tracingActive:", tracingActive);
             if (hands.length > 0 && tracingActive) {
                 let hand = hands[0];
                 let indexFinger = hand.landmarks[8];
-                let rawX = indexFinger[0];
+                let x = indexFinger[0];
                 let y = indexFinger[1];
+                if (tracingActive) {
+                    yHistory.push(y);
+                    //existing zone logic stays the same - claude
+                }
 
-                // Calculate the mirrored coordinate so logic matches the display
-                let mirroredX = canvas.width - rawX;
-
-                // Draw finger point indicator ball accurately on the overlay canvas
+                // Draw finger point indicator ball
                 ctx.save();
                 ctx.fillStyle = '#ff7b7b';
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.arc(mirroredX, y, 11, 0, 2 * Math.PI);
+                ctx.arc(canvas.width - x, y, 11, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();
 
-                // Continuous theremin frequency math mappings
+                // Continuous theremin frequency logic
                 let normalizedY = y / canvas.height;
                 let calculatedFreq = 466 - (normalizedY * (466 - 220)); 
                 setPitch(calculatedFreq);
 
-                // Track spatial positions using the actual mirrored boundaries
                 let currentZone = (y < canvas.height / 2) ? "Top" : "Bottom";
                 if (zoneHistory.length === 0 || zoneHistory[zoneHistory.length - 1] !== currentZone) {
                     zoneHistory.push(currentZone);
@@ -443,7 +444,10 @@
         }
 
         function loadLevel(index) {
-            currentLevel = index;
+            currentLevel = index
+            zoneHistory = [];
+            yHistory = [];
+            ;
             let word = wordList[currentLevel];
 
             uiChar.innerText = word.char;
@@ -518,7 +522,16 @@
             let detectedTone = 0;
             let pattern = zoneHistory.join("->");
 
-            if (pattern === "Top") {
+           // Check for flat: finger didn't move much vertically regardless of which zone
+            const FLAT_THRESHOLD = canvas.height * 0.20; // ~43px on a 360px canvas, tune this
+            let isFlat = false;
+            if (yHistory.length > 0) {
+                const minY = Math.min(...yHistory);
+                const maxY = Math.max(...yHistory);
+                isFlat = (maxY - minY) < FLAT_THRESHOLD;
+            }
+
+            if (isFlat) {
                 detectedTone = 1;
             } else if (pattern === "Bottom->Top") {
                 detectedTone = 2;
@@ -527,7 +540,6 @@
             } else if (pattern === "Top->Bottom") {
                 detectedTone = 4;
             }
-
             if (detectedTone === targetTone) {
                 statusCard.innerText = "🌟 PERFECT TONE! Excellent Curve! 🌟";
                 statusCard.style.backgroundColor = "#eefbeb"; 
