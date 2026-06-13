@@ -1,0 +1,2349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ToneSurfer Mandarin</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.22.0/dist/tf-converter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.22.0/dist/tf-backend-webgl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --sky-blue-light: #8ecae6ff;
+      --blue-green: #219ebcff;
+      --deep-space-blue: #023047ff;
+      --amber-flame: #ffb703ff;
+      --princeton-orange: #fb8500ff;
+      --cream: #fff8e8;
+      --butter: var(--amber-flame);
+      --butter-soft: #ffe7a7;
+      --sage: var(--sky-blue-light);
+      --sage-deep: var(--blue-green);
+      --peach: #ffc57f;
+      --peach-deep: var(--princeton-orange);
+      --terracotta: var(--princeton-orange);
+      --sand: #f9e2bb;
+      --rose: #ffcf9c;
+      --ink: var(--deep-space-blue);
+      --soft-ink: rgba(2, 48, 71, 0.64);
+      --white: #ffffff;
+      --shadow: rgba(2, 48, 71, 0.15);
+      --shadow-soft: rgba(2, 48, 71, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Quicksand", "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 8% 18%, rgba(251, 133, 0, 0.16) 0 74px, transparent 75px),
+        radial-gradient(circle at 90% 10%, rgba(255, 183, 3, 0.28) 0 88px, transparent 89px),
+        radial-gradient(circle at 86% 88%, rgba(142, 202, 230, 0.34) 0 126px, transparent 127px),
+        linear-gradient(145deg, #fff8e8 0%, #fff1d4 46%, #f8e5c3 100%);
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      left: -8vw;
+      right: -8vw;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::before {
+      bottom: 0;
+      height: 23vh;
+      background:
+        radial-gradient(128px 36px at 7% 34%, rgba(142, 202, 230, 0.38) 0 62%, transparent 63%),
+        radial-gradient(142px 42px at 27% 50%, rgba(251, 133, 0, 0.2) 0 62%, transparent 63%),
+        radial-gradient(132px 40px at 48% 32%, rgba(255, 183, 3, 0.38) 0 62%, transparent 63%),
+        radial-gradient(152px 43px at 72% 48%, rgba(33, 158, 188, 0.22) 0 62%, transparent 63%),
+        radial-gradient(134px 38px at 94% 35%, rgba(251, 133, 0, 0.16) 0 62%, transparent 63%),
+        linear-gradient(180deg, transparent 0%, rgba(247, 223, 186, 0.74) 100%);
+    }
+
+    body::after {
+      top: 0;
+      height: 100%;
+      background-image:
+        radial-gradient(circle, rgba(251, 133, 0, 0.16) 0 5px, transparent 6px),
+        radial-gradient(circle, rgba(33, 158, 188, 0.18) 0 4px, transparent 5px),
+        radial-gradient(circle, rgba(255, 183, 3, 0.34) 0 6px, transparent 7px);
+      background-position: 9% 26%, 78% 50%, 51% 10%;
+      background-size: 250px 280px, 330px 350px, 280px 300px;
+      opacity: 0.72;
+    }
+
+    .app {
+      width: min(1120px, 100%);
+      display: grid;
+      gap: 20px;
+      position: relative;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .title-card,
+    .camera-shell,
+    .tone-card,
+    .meter,
+    .hint,
+    .start-button,
+    .tone-chip {
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 32px;
+      box-shadow: 0 22px 55px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    .title-card {
+      min-height: 132px;
+      padding: 22px 28px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 251, 239, 0.58)),
+        linear-gradient(135deg, var(--butter-soft), rgba(142, 202, 230, 0.58));
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .title-card::after {
+      content: "";
+      position: absolute;
+      right: 28px;
+      top: 20px;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 32%, rgba(255, 255, 255, 0.82) 0 8px, transparent 9px),
+        linear-gradient(145deg, var(--amber-flame), var(--princeton-orange));
+      box-shadow: 0 14px 24px rgba(251, 133, 0, 0.18);
+      opacity: 0.9;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.25rem, 5vw, 4.2rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+      font-weight: 1000;
+    }
+
+    .title-mark {
+      color: var(--sage-deep);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--soft-ink);
+      font-weight: 850;
+      font-size: 1.05rem;
+    }
+
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .nav-pill,
+    .tone-chip {
+      align-items: center;
+      display: inline-flex;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      color: var(--soft-ink);
+      background: rgba(255, 255, 255, 0.56);
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 950;
+    }
+
+    .nav-icon,
+    .chip-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .nav-icon.home {
+      background: var(--sage);
+    }
+
+    .nav-icon.home::before {
+      content: "";
+      position: absolute;
+      inset: 5px 4px 4px;
+      border-radius: 5px;
+      background: var(--white);
+    }
+
+    .nav-icon.spark {
+      background: var(--butter);
+    }
+
+    .nav-icon.spark::before,
+    .nav-icon.spark::after,
+    .sparkle::before,
+    .sparkle::after {
+      content: "";
+      position: absolute;
+      background: var(--white);
+      border-radius: 999px;
+    }
+
+    .nav-icon.spark::before {
+      width: 12px;
+      height: 4px;
+      left: 4px;
+      top: 8px;
+    }
+
+    .nav-icon.spark::after {
+      width: 4px;
+      height: 12px;
+      left: 8px;
+      top: 4px;
+    }
+
+    .start-button {
+      align-items: center;
+      align-self: stretch;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 52%),
+        linear-gradient(135deg, var(--peach), var(--butter));
+      color: var(--deep-space-blue);
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      min-height: 104px;
+      min-width: 188px;
+      padding: 0 26px;
+      font: inherit;
+      font-size: 1.08rem;
+      font-weight: 1000;
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .start-button::before {
+      content: "";
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background:
+        linear-gradient(90deg, transparent 0 43%, var(--white) 44% 56%, transparent 57%),
+        linear-gradient(0deg, transparent 0 43%, var(--white) 44% 56%, transparent 57%),
+        var(--sage-deep);
+      box-shadow: inset 0 -4px 0 rgba(74, 74, 63, 0.08);
+    }
+
+    .start-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 28px 60px rgba(251, 133, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    .start-button:active {
+      transform: translateY(2px);
+    }
+
+    .start-button:disabled {
+      cursor: default;
+      opacity: 0.82;
+      transform: none;
+    }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.55fr);
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .camera-shell {
+      position: relative;
+      overflow: hidden;
+      min-height: 500px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 52% 16%, rgba(255, 183, 3, 0.78) 0 74px, transparent 75px),
+        linear-gradient(180deg, rgba(251, 133, 0, 0.22) 0%, rgba(255, 240, 201, 0.72) 48%, rgba(142, 202, 230, 0.48) 100%),
+        var(--white);
+    }
+
+    .camera-shell::before {
+      content: "Surf Cam";
+      position: absolute;
+      left: 24px;
+      top: 22px;
+      z-index: 4;
+      padding: 11px 16px 11px 44px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 999px;
+      color: var(--deep-space-blue);
+      background:
+        radial-gradient(circle at 25px 50%, var(--sage-deep) 0 9px, transparent 10px),
+        rgba(255, 255, 255, 0.68);
+      font-size: 0.92rem;
+      font-weight: 1000;
+      box-shadow: 0 14px 28px var(--shadow-soft);
+      backdrop-filter: blur(12px);
+    }
+
+    canvas {
+      width: calc(100% - 42px);
+      height: calc(100% - 42px);
+      min-height: 456px;
+      display: block;
+      object-fit: cover;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.9) 0 8px, transparent 9px),
+        linear-gradient(180deg, #ffc57f 0%, #fff0c9 47%, #8ecae6 100%);
+      border-radius: 38px;
+      box-shadow: inset 0 0 0 10px rgba(255, 251, 239, 0.42), 0 20px 50px rgba(136, 105, 73, 0.16);
+    }
+
+    video {
+      display: none;
+    }
+
+    .zone-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      opacity: 0.98;
+    }
+
+    .zone {
+      position: relative;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 1000;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+
+    .zone span {
+      max-width: min(86%, 360px);
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: 0 14px 30px var(--shadow-soft);
+      text-align: center;
+      font-size: clamp(1rem, 2vw, 1.22rem);
+      backdrop-filter: blur(10px);
+    }
+
+    .zone-high {
+      background: linear-gradient(180deg, rgba(255, 232, 173, 0.42), transparent 74%);
+    }
+
+    .zone-low {
+      background: linear-gradient(0deg, rgba(142, 202, 230, 0.45), transparent 74%);
+    }
+
+    .zone-overlay.high .zone-high {
+      border-color: rgba(255, 183, 3, 0.72);
+      background: rgba(255, 183, 3, 0.28);
+    }
+
+    .zone-overlay.low .zone-low {
+      border-color: rgba(33, 158, 188, 0.64);
+      background: rgba(142, 202, 230, 0.38);
+    }
+
+    .finger-dot {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 5px solid var(--white);
+      background:
+        radial-gradient(circle at 38% 33%, rgba(255, 255, 255, 0.95) 0 5px, transparent 6px),
+        var(--terracotta);
+      box-shadow: 0 0 0 9px rgba(251, 133, 0, 0.18), 0 10px 20px rgba(2, 48, 71, 0.18);
+      translate: -50% -50%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 140ms ease, transform 140ms ease;
+      z-index: 5;
+    }
+
+    .finger-dot.visible {
+      opacity: 1;
+    }
+
+    .status-panel {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      position: relative;
+    }
+
+    .tone-card {
+      min-height: 214px;
+      padding: 22px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 251, 239, 0.58)),
+        linear-gradient(145deg, var(--white), var(--butter-soft));
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .status-label {
+      margin: 0;
+      color: var(--sage-deep);
+      font-weight: 1000;
+      font-size: 0.92rem;
+    }
+
+    .status-text {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
+      font-weight: 1000;
+      letter-spacing: 0;
+    }
+
+    .status-text.high {
+      color: var(--terracotta);
+    }
+
+    .status-text.low {
+      color: var(--sage-deep);
+    }
+
+    .status-text.neutral {
+      color: var(--peach-deep);
+    }
+
+    .tone-chips {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .tone-chip {
+      justify-content: center;
+      min-height: 58px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: 0 16px 34px var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+    }
+
+    .chip-icon.high {
+      background: var(--peach);
+    }
+
+    .chip-icon.high::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 10px;
+      width: 10px;
+      height: 10px;
+      border-left: 4px solid var(--white);
+      border-top: 4px solid var(--white);
+      transform: rotate(45deg);
+    }
+
+    .chip-icon.low {
+      background: var(--sage);
+    }
+
+    .chip-icon.low::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 3px;
+      width: 10px;
+      height: 10px;
+      border-right: 4px solid var(--white);
+      border-bottom: 4px solid var(--white);
+      transform: rotate(45deg);
+    }
+
+    .level-panel {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 32px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 248, 232, 0.56)),
+        rgba(142, 202, 230, 0.18);
+      box-shadow: 0 16px 34px var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+    }
+
+    .level-header,
+    .word-list {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .level-name,
+    .level-progress,
+    .word-dot {
+      border-radius: 999px;
+      color: var(--deep-space-blue);
+      font-size: 0.86rem;
+      font-weight: 1000;
+      padding: 8px 11px;
+    }
+
+    .level-name {
+      background: rgba(142, 202, 230, 0.34);
+    }
+
+    .level-progress {
+      background: rgba(255, 183, 3, 0.22);
+    }
+
+    .word-card {
+      align-items: center;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .hanzi {
+      display: grid;
+      place-items: center;
+      width: 66px;
+      height: 66px;
+      border-radius: 24px;
+      color: var(--white);
+      background: linear-gradient(145deg, var(--blue-green), var(--deep-space-blue));
+      font-size: 2.2rem;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    .word-copy {
+      min-width: 0;
+    }
+
+    .pinyin {
+      display: block;
+      color: var(--deep-space-blue);
+      font-size: 1.6rem;
+      font-weight: 1000;
+      line-height: 1.05;
+    }
+
+    .word-tone {
+      display: block;
+      margin-top: 5px;
+      color: var(--soft-ink);
+      font-size: 0.92rem;
+      font-weight: 900;
+    }
+
+    .meaning-card {
+      display: none;
+      grid-template-columns: 138px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      padding: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 248, 232, 0.72)),
+        rgba(255, 183, 3, 0.12);
+      box-shadow: 0 18px 38px rgba(2, 48, 71, 0.12);
+    }
+
+    .meaning-card.visible {
+      display: grid;
+    }
+
+    .meaning-photo {
+      width: 138px;
+      height: 112px;
+      object-fit: cover;
+      background: rgba(142, 202, 230, 0.22);
+    }
+
+    .meaning-label {
+      display: block;
+      color: var(--soft-ink);
+      font-size: 0.86rem;
+      font-weight: 1000;
+      text-transform: uppercase;
+    }
+
+    .meaning-sentence {
+      display: block;
+      margin-top: 3px;
+      color: var(--princeton-orange);
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      font-weight: 1000;
+      line-height: 1.04;
+    }
+
+    .meaning-text {
+      display: block;
+      margin-top: 6px;
+      color: var(--deep-space-blue);
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    .word-list {
+      justify-content: flex-start;
+    }
+
+    .word-dot {
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--soft-ink);
+    }
+
+    .word-dot.active {
+      background: rgba(255, 183, 3, 0.28);
+      color: var(--deep-space-blue);
+    }
+
+    .word-dot.done {
+      background: rgba(33, 158, 188, 0.2);
+      color: var(--blue-green);
+    }
+
+    .audio-button {
+      border: 0;
+      border-radius: 999px;
+      min-height: 46px;
+      color: var(--white);
+      background: linear-gradient(145deg, var(--blue-green), var(--deep-space-blue));
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 1000;
+      padding: 10px 14px;
+      box-shadow: 0 14px 28px rgba(2, 48, 71, 0.16);
+    }
+
+    .level-actions {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .reveal-button {
+      border: 0;
+      border-radius: 999px;
+      min-height: 46px;
+      color: var(--deep-space-blue);
+      background: rgba(255, 183, 3, 0.32);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 1000;
+      padding: 10px 14px;
+      box-shadow: 0 14px 28px rgba(2, 48, 71, 0.08);
+    }
+
+    .reveal-button:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+
+    .path-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .path-step {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--soft-ink);
+      font-size: 0.78rem;
+      font-weight: 1000;
+      padding: 7px 9px;
+    }
+
+    .path-step.active {
+      background: rgba(255, 183, 3, 0.32);
+      color: var(--deep-space-blue);
+    }
+
+    .path-step.done {
+      background: rgba(33, 158, 188, 0.2);
+      color: var(--blue-green);
+    }
+
+    .hold-meter {
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    }
+
+    .hold-meter-top {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      color: var(--soft-ink);
+      font-size: 0.82rem;
+      font-weight: 1000;
+    }
+
+    .hold-track {
+      height: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(2, 48, 71, 0.1);
+    }
+
+    .hold-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue-green), var(--amber-flame), var(--princeton-orange));
+      transition: width 80ms linear;
+    }
+
+    .tone-hidden {
+      color: var(--soft-ink);
+      font-style: normal;
+    }
+
+    .readout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .meter {
+      min-height: 82px;
+      background: rgba(255, 255, 255, 0.62);
+      padding: 15px;
+      color: var(--soft-ink);
+      font-weight: 900;
+    }
+
+    .meter strong {
+      display: block;
+      margin-top: 3px;
+      color: var(--ink);
+      font-size: 1.42rem;
+      font-weight: 1000;
+    }
+
+    .hint {
+      margin: 0;
+      padding: 16px;
+      color: var(--ink);
+      background: rgba(255, 232, 173, 0.52);
+      font-size: 1.04rem;
+      font-weight: 820;
+      line-height: 1.42;
+    }
+
+    .mascot {
+      position: absolute;
+      right: 28px;
+      bottom: 22px;
+      z-index: 4;
+      width: 92px;
+      height: 84px;
+      border-radius: 44px 44px 30px 30px;
+      background: var(--sage);
+      box-shadow: 0 18px 35px rgba(33, 158, 188, 0.22);
+      pointer-events: none;
+    }
+
+    .mascot::before,
+    .mascot::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--ink);
+      box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.42);
+    }
+
+    .mascot::before {
+      left: 24px;
+    }
+
+    .mascot::after {
+      right: 24px;
+    }
+
+    .mascot-smile {
+      position: absolute;
+      left: 34px;
+      top: 48px;
+      width: 24px;
+      height: 13px;
+      border-bottom: 4px solid rgba(2, 48, 71, 0.8);
+      border-radius: 0 0 999px 999px;
+    }
+
+    .sparkle {
+      position: absolute;
+      z-index: 3;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 232, 173, 0.72);
+      box-shadow: 0 12px 24px rgba(251, 133, 0, 0.12);
+      pointer-events: none;
+    }
+
+    .sparkle.one {
+      left: 8%;
+      bottom: 18%;
+    }
+
+    .sparkle.two {
+      right: 16%;
+      top: 22%;
+      transform: scale(0.78);
+    }
+
+    .sparkle::before {
+      width: 16px;
+      height: 4px;
+      left: 6px;
+      top: 12px;
+    }
+
+    .sparkle::after {
+      width: 4px;
+      height: 16px;
+      left: 12px;
+      top: 6px;
+    }
+
+    .celebrate {
+      min-height: 36px;
+      color: var(--princeton-orange);
+      font-size: 1.16rem;
+      font-weight: 1000;
+    }
+
+    .pulse {
+      animation: pulse 520ms ease;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.045) rotate(-1deg); }
+      100% { transform: scale(1); }
+    }
+
+    .celebration-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(2, 48, 71, 0.42);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .celebration-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .celebration-card {
+      width: min(720px, 100%);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 232, 0.86)),
+        linear-gradient(135deg, rgba(255, 183, 3, 0.22), rgba(142, 202, 230, 0.28));
+      box-shadow: 0 28px 70px rgba(2, 48, 71, 0.28);
+      padding: clamp(24px, 6vw, 44px);
+      text-align: center;
+    }
+
+    .celebration-card h2 {
+      margin: 0;
+      color: var(--deep-space-blue);
+      font-size: clamp(2.3rem, 7vw, 4.6rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .celebration-card p {
+      margin: 12px 0 0;
+      color: var(--soft-ink);
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      font-weight: 1000;
+    }
+
+    .animal-dance-floor {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(4px, 3vw, 18px);
+      margin: clamp(20px, 5vw, 34px) auto 0;
+      max-width: 540px;
+    }
+
+    .dancing-animal {
+      display: grid;
+      place-items: center;
+      min-height: clamp(72px, 16vw, 118px);
+      border: 0;
+      background: transparent;
+      font-size: clamp(3rem, 10vw, 5.8rem);
+      box-shadow: none;
+      filter: drop-shadow(0 12px 16px rgba(2, 48, 71, 0.18));
+      transform-origin: 50% 100%;
+      animation: animalDance 620ms ease-in-out infinite;
+    }
+
+    .dancing-animal:nth-child(2) {
+      animation-delay: 110ms;
+    }
+
+    .dancing-animal:nth-child(3) {
+      animation-delay: 220ms;
+    }
+
+    .dancing-animal:nth-child(4) {
+      animation-delay: 330ms;
+    }
+
+    @keyframes animalDance {
+      0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+      25% { transform: translateY(-12px) rotate(-7deg) scale(1.06); }
+      50% { transform: translateY(0) rotate(6deg) scale(0.98); }
+      75% { transform: translateY(-8px) rotate(7deg) scale(1.04); }
+    }
+
+    .title-card,
+    .camera-shell,
+    .tone-card,
+    .meter,
+    .hint,
+    .start-button,
+    .nav-pill,
+    .tone-chip,
+    .camera-shell::before,
+    canvas,
+    .zone span,
+    .finger-dot,
+    .level-panel,
+    .level-name,
+    .level-progress,
+    .word-dot,
+    .word-card,
+    .meaning-card,
+    .meaning-photo,
+    .hanzi,
+    .audio-button,
+    .reveal-button,
+    .path-step,
+    .hold-meter,
+    .hold-track,
+    .hold-fill,
+    .mascot,
+    .mascot-smile,
+    .sparkle,
+    .celebration-card,
+    .dancing-animal {
+      border-radius: 0;
+    }
+
+    .brand-logo {
+      display: block;
+      width: min(300px, 100%);
+      height: auto;
+      margin: -18px 0 -22px;
+      filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.18));
+      position: relative;
+      z-index: 1;
+    }
+
+    body {
+      background:
+        linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0 18px, transparent 19px) 0 0 / 88px 88px,
+        radial-gradient(circle at 12% 18%, rgba(8, 54, 145, 0.16) 0 82px, transparent 83px),
+        radial-gradient(circle at 88% 14%, rgba(255, 231, 182, 0.74) 0 96px, transparent 97px),
+        linear-gradient(145deg, #f7f2e8 0%, #dfe8f6 54%, #ffe8b5 100%);
+      color: #050505;
+      font-family: "Trebuchet MS", "Comic Sans MS", "Quicksand", system-ui, sans-serif;
+    }
+
+    body::before {
+      background:
+        radial-gradient(160px 46px at 8% 36%, rgba(6, 50, 139, 0.26) 0 62%, transparent 63%),
+        radial-gradient(170px 52px at 31% 48%, rgba(0, 0, 0, 0.12) 0 62%, transparent 63%),
+        radial-gradient(164px 50px at 55% 34%, rgba(219, 229, 245, 0.6) 0 62%, transparent 63%),
+        radial-gradient(178px 54px at 82% 48%, rgba(6, 50, 139, 0.22) 0 62%, transparent 63%);
+    }
+
+    body::after {
+      background-image:
+        linear-gradient(35deg, transparent 0 44%, rgba(0, 0, 0, 0.08) 45% 49%, transparent 50%),
+        radial-gradient(circle, rgba(6, 50, 139, 0.18) 0 5px, transparent 6px);
+      background-size: 220px 180px, 280px 300px;
+      opacity: 0.58;
+    }
+
+    .title-card,
+    .camera-shell,
+    .tone-card,
+    .level-panel,
+    .word-card,
+    .meaning-card,
+    .meter,
+    .hint,
+    .start-button,
+    .tone-chip,
+    .hold-meter,
+    .celebration-card {
+      border: 3px solid #050505;
+      box-shadow: 0 8px 20px rgba(2, 48, 71, 0.18);
+    }
+
+    .title-card {
+      min-height: 118px;
+      padding: 10px 16px 8px;
+      background:
+        linear-gradient(105deg, rgba(255, 232, 181, 0.9), rgba(219, 229, 245, 0.86)),
+        #f7f2e8;
+    }
+
+    .title-card::after {
+      display: none;
+    }
+
+    .subtitle,
+    .status-label,
+    .word-tone,
+    .meter,
+    .meaning-label,
+    .hint {
+      color: rgba(0, 0, 0, 0.72);
+    }
+
+    .nav-pill,
+    .level-name,
+    .level-progress,
+    .word-dot,
+    .path-step,
+    .zone span,
+    .camera-shell::before {
+      border: 3px solid #050505;
+      background: #ffe8b5;
+      color: #050505;
+      box-shadow: 0 4px 10px rgba(2, 48, 71, 0.16);
+    }
+
+    .nav-icon.home,
+    .nav-icon.spark,
+    .chip-icon.high,
+    .chip-icon.low,
+    .camera-shell::before {
+      background-color: #06328b;
+      color: #ffe8b5;
+      text-shadow: none;
+    }
+
+    .start-button,
+    .audio-button {
+      background: #06328b;
+      color: #ffe8b5;
+      text-shadow: none;
+    }
+
+    .start-button::before {
+      background:
+        linear-gradient(90deg, transparent 0 43%, #ffe8b5 44% 56%, transparent 57%),
+        linear-gradient(0deg, transparent 0 43%, #ffe8b5 44% 56%, transparent 57%),
+        #06328b;
+      border: 3px solid #050505;
+    }
+
+    .reveal-button,
+    .tone-chip,
+    .hold-meter,
+    .hint {
+      background: #ffe8b5;
+      color: #050505;
+    }
+
+    .camera-shell {
+      background:
+        linear-gradient(180deg, rgba(219, 229, 245, 0.9), rgba(6, 50, 139, 0.18)),
+        #dbe5f5;
+    }
+
+    canvas {
+      background:
+        radial-gradient(circle at 58% 42%, rgba(219, 229, 245, 0.86) 0 34%, transparent 35%),
+        linear-gradient(180deg, #dbe5f5 0%, #7ea4d7 56%, #06328b 100%);
+      border: 4px solid #050505;
+    }
+
+    .tone-card,
+    .level-panel,
+    .word-card,
+    .meaning-card,
+    .meter {
+      background: rgba(247, 242, 232, 0.94);
+    }
+
+    .hanzi,
+    .meaning-photo {
+      border: 4px solid #050505;
+    }
+
+    .hanzi {
+      background: #06328b;
+      color: #ffe8b5;
+      text-shadow: none;
+    }
+
+    .status-text,
+    .pinyin,
+    .meaning-text {
+      color: #06328b;
+      text-shadow: none;
+    }
+
+    .status-text.high,
+    .status-text.low,
+    .status-text.neutral,
+    .celebrate,
+    .meaning-sentence {
+      color: #06328b;
+    }
+
+    .hold-track {
+      border: 3px solid #050505;
+      background: #dbe5f5;
+    }
+
+    .hold-fill {
+      background: linear-gradient(90deg, #06328b, #dbe5f5, #ffe8b5);
+    }
+
+    .finger-dot,
+    .sparkle,
+    .mascot {
+      border: 4px solid #050505;
+      background: #dbe5f5;
+      box-shadow: 0 5px 12px rgba(2, 48, 71, 0.2);
+    }
+
+    body {
+      padding: 8px;
+    }
+
+    .app {
+      gap: 8px;
+      width: min(1220px, 100%);
+    }
+
+    header {
+      gap: 10px;
+      grid-template-columns: minmax(0, 1fr) 150px;
+    }
+
+    .top-nav {
+      gap: 6px;
+    }
+
+    .nav-pill,
+    .tone-chip {
+      min-height: 30px;
+      padding: 6px 9px;
+      font-size: 0.78rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+    }
+
+    .start-button {
+      min-height: 76px;
+      min-width: 0;
+      padding: 0 14px;
+    }
+
+    .stage-grid {
+      gap: 10px;
+      grid-template-columns: minmax(0, 1.55fr) minmax(270px, 0.45fr);
+    }
+
+    .camera-shell {
+      height: auto;
+      min-height: 310px;
+    }
+
+    canvas {
+      height: calc(100% - 24px);
+      min-height: 0;
+      width: calc(100% - 24px);
+    }
+
+    .status-panel {
+      gap: 8px;
+    }
+
+    .tone-card {
+      min-height: 118px;
+      padding: 14px;
+      gap: 6px;
+    }
+
+    .status-text {
+      font-size: clamp(1.45rem, 3vw, 2.25rem);
+    }
+
+    .celebrate {
+      min-height: 24px;
+      font-size: 0.98rem;
+    }
+
+    .level-panel {
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .word-card {
+      gap: 9px;
+      padding: 9px;
+    }
+
+    .hanzi {
+      height: 52px;
+      width: 52px;
+      font-size: 1.8rem;
+    }
+
+    .pinyin {
+      font-size: 1.35rem;
+    }
+
+    .word-tone {
+      font-size: 0.8rem;
+    }
+
+    .meaning-card {
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .meaning-photo {
+      height: 72px;
+      width: 96px;
+    }
+
+    .meaning-sentence {
+      font-size: clamp(1rem, 2.5vw, 1.45rem);
+    }
+
+    .meaning-text {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+    }
+
+    .hold-meter {
+      gap: 5px;
+      padding: 8px;
+    }
+
+    .hold-track {
+      height: 10px;
+    }
+
+    .audio-button,
+    .reveal-button {
+      min-height: 38px;
+      padding: 8px 10px;
+    }
+
+    .tone-chip {
+      min-height: 40px;
+    }
+
+    .meter {
+      min-height: 60px;
+      padding: 10px;
+    }
+
+    .meter strong {
+      font-size: 1.15rem;
+    }
+
+    .hint {
+      font-size: 0.86rem;
+      line-height: 1.25;
+      padding: 10px;
+    }
+
+    @media (max-width: 1400px) {
+      .tone-chips,
+      .readout,
+      .hint {
+        display: none;
+      }
+
+      .title-card {
+        min-height: 104px;
+      }
+
+      .brand-logo {
+        width: min(280px, 100%);
+      }
+
+      .stage-grid {
+        grid-template-columns: minmax(0, 1.55fr) minmax(310px, 0.45fr);
+      }
+
+      .camera-shell {
+        height: clamp(400px, calc(100vh - 240px), 540px);
+        min-height: 400px;
+      }
+
+      .tone-card {
+        min-height: 94px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .brand-logo {
+        width: min(340px, 100%);
+        margin: -18px 0 -22px;
+      }
+
+      .title-card {
+        min-height: 118px;
+        padding: 10px 14px;
+      }
+
+      header {
+        grid-template-columns: minmax(0, 1fr) 138px;
+      }
+
+      .start-button {
+        min-height: 78px;
+        font-size: 0.96rem;
+      }
+
+      .start-button::before {
+        height: 24px;
+        width: 24px;
+      }
+
+      .stage-grid {
+        grid-template-columns: minmax(0, 1.45fr) minmax(245px, 0.55fr);
+      }
+
+      .camera-shell {
+        height: min(45vh, 330px);
+        min-height: 286px;
+      }
+
+      .tone-card {
+        min-height: 94px;
+        padding: 10px;
+      }
+
+      .status-label {
+        font-size: 0.78rem;
+      }
+
+      .status-text {
+        font-size: clamp(1.2rem, 2.6vw, 1.7rem);
+      }
+
+      .celebrate {
+        font-size: 0.86rem;
+        min-height: 18px;
+      }
+
+      .tone-chips,
+      .readout,
+      .hint {
+        display: none;
+      }
+
+      .level-name,
+      .level-progress,
+      .word-dot,
+      .path-step {
+        font-size: 0.72rem;
+        padding: 5px 7px;
+      }
+
+      .word-card {
+        padding: 7px;
+      }
+
+      .hanzi {
+        height: 42px;
+        width: 42px;
+        font-size: 1.42rem;
+      }
+
+      .pinyin {
+        font-size: 1.1rem;
+      }
+
+      .word-tone {
+        font-size: 0.72rem;
+      }
+
+      .hold-meter {
+        padding: 6px;
+      }
+    }
+
+    @media (min-width: 621px) and (max-width: 1400px) {
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        min-height: 0;
+      }
+
+      .app {
+        height: calc(100vh - 24px);
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      header,
+      .stage-grid,
+      .camera-shell,
+      .status-panel {
+        min-height: 0;
+      }
+
+      .stage-grid {
+        height: 100%;
+        align-items: stretch;
+      }
+
+      .camera-shell {
+        height: 100%;
+        min-height: 0;
+      }
+
+      .status-panel {
+        height: 100%;
+        align-content: stretch;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .level-panel {
+        min-height: 0;
+        align-content: start;
+      }
+    }
+
+    @media (max-width: 620px) {
+      body {
+        padding: 10px;
+      }
+
+      header,
+      .stage-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .start-button {
+        width: 100%;
+      }
+
+      .camera-shell,
+      canvas {
+        min-height: 54vh;
+      }
+
+      canvas {
+        width: calc(100% - 26px);
+        height: calc(100% - 26px);
+      }
+
+      .title-card::after {
+        opacity: 0.38;
+      }
+
+      .mascot {
+        opacity: 0.58;
+        transform: scale(0.82);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <section class="title-card" aria-label="ToneSurfer Mandarin title">
+        <div class="top-nav" aria-label="Practice overview">
+          <span class="nav-pill"><span class="nav-icon home" aria-hidden="true"></span> Tone Studio</span>
+          <span class="nav-pill"><span class="nav-icon spark" aria-hidden="true"></span><span id="levelBadge">Level 1 / 3</span></span>
+        </div>
+        <img class="brand-logo" src="./assets/tonesurfer-logo.png" alt="Tone Surfer" />
+        <p class="subtitle">A playful beach game for practicing Mandarin tones</p>
+      </section>
+      <button id="startButton" class="start-button">Start Surf</button>
+    </header>
+
+    <section class="stage-grid" aria-label="ToneSurfer Mandarin game">
+      <div class="camera-shell">
+        <video id="video" playsinline muted></video>
+        <canvas id="canvas" width="960" height="540"></canvas>
+        <div id="zoneOverlay" class="zone-overlay" aria-hidden="true">
+          <div class="zone zone-high"><span>Surf Up: High Tone</span></div>
+          <div class="zone zone-low"><span>Dive Down: Low Tone</span></div>
+        </div>
+        <div id="fingerDot" class="finger-dot" aria-hidden="true"></div>
+        <span class="sparkle one" aria-hidden="true"></span>
+        <span class="sparkle two" aria-hidden="true"></span>
+        <div class="mascot" aria-hidden="true"><span class="mascot-smile"></span></div>
+      </div>
+
+      <aside class="status-panel">
+        <div id="toneCard" class="tone-card">
+          <p class="status-label">Beach Mission</p>
+          <p id="statusText" class="status-text neutral">Surf up for High Tone</p>
+          <div id="celebrateText" class="celebrate"></div>
+        </div>
+
+        <div class="level-panel" aria-label="Current level">
+          <div class="level-header">
+            <span id="levelName" class="level-name">Level 1</span>
+            <span id="levelProgress" class="level-progress">1 / 3</span>
+          </div>
+          <div class="word-card">
+            <span id="wordHanzi" class="hanzi">妈</span>
+            <span class="word-copy">
+              <span id="wordPinyin" class="pinyin">ma</span>
+              <span id="wordTone" class="word-tone">High tone: surf up</span>
+            </span>
+          </div>
+          <div id="meaningCard" class="meaning-card" aria-live="polite">
+            <img id="meaningPhoto" class="meaning-photo" alt="" />
+            <span>
+              <span class="meaning-label">English</span>
+              <span id="meaningSentence" class="meaning-sentence">mā means</span>
+              <span id="meaningText" class="meaning-text">mom</span>
+            </span>
+          </div>
+          <div id="pathSteps" class="path-steps" aria-label="Tone path"></div>
+          <div style="display: none;" class="hold-meter" aria-label="Hold progress">
+            <div class="hold-meter-top">
+              <span id="holdLabel">Hold the right zone</span>
+              <span id="holdTime">0.42s</span>
+            </div>
+            <div class="hold-track">
+              <div id="holdFill" class="hold-fill"></div>
+            </div>
+          </div>
+          <div id="wordList" class="word-list" aria-label="Level words"></div>
+          <div class="level-actions">
+            <button id="playWordButton" class="audio-button" type="button">Play Word</button>
+            <button id="revealToneButton" class="reveal-button" type="button">Reveal Tone</button>
+          </div>
+        </div>
+
+        <div class="tone-chips" aria-label="Tone controls">
+          <div class="tone-chip"><span class="chip-icon high" aria-hidden="true"></span> High Tone</div>
+          <div class="tone-chip"><span class="chip-icon low" aria-hidden="true"></span> Low Tone</div>
+        </div>
+
+        <div style="display: none;" class="readout">
+          <div class="meter">
+            Finger Spot
+            <strong id="yReadout">--</strong>
+          </div>
+          <div class="meter">
+            Pitch
+            <strong id="pitchReadout">330Hz</strong>
+          </div>
+        </div>
+
+        <p class="hint">Each level introduces new words. After Level 3, the game loops with tone hints hidden unless you reveal them.</p>
+      </aside>
+    </section>
+  </main>
+
+  <div id="celebrationOverlay" class="celebration-overlay" aria-live="polite" aria-hidden="true">
+    <div class="celebration-card">
+      <h2 id="celebrationTitle">Level Complete</h2>
+      <p id="celebrationMessage">The dance party is starting.</p>
+      <div class="animal-dance-floor" aria-label="Dancing animals">
+        <span class="dancing-animal" aria-hidden="true">🐼</span>
+        <span class="dancing-animal" aria-hidden="true">🐯</span>
+        <span class="dancing-animal" aria-hidden="true">🐵</span>
+        <span class="dancing-animal" aria-hidden="true">🐰</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const startButton = document.getElementById("startButton");
+    const statusText = document.getElementById("statusText");
+    const celebrateText = document.getElementById("celebrateText");
+    const zoneOverlay = document.getElementById("zoneOverlay");
+    const fingerDot = document.getElementById("fingerDot");
+    const yReadout = document.getElementById("yReadout");
+    const pitchReadout = document.getElementById("pitchReadout");
+    const toneCard = document.getElementById("toneCard");
+    const levelName = document.getElementById("levelName");
+    const levelBadge = document.getElementById("levelBadge");
+    const levelProgress = document.getElementById("levelProgress");
+    const wordHanzi = document.getElementById("wordHanzi");
+    const wordPinyin = document.getElementById("wordPinyin");
+    const wordTone = document.getElementById("wordTone");
+    const meaningCard = document.getElementById("meaningCard");
+    const meaningPhoto = document.getElementById("meaningPhoto");
+    const meaningSentence = document.getElementById("meaningSentence");
+    const meaningText = document.getElementById("meaningText");
+    const pathSteps = document.getElementById("pathSteps");
+    const holdLabel = document.getElementById("holdLabel");
+    const holdTime = document.getElementById("holdTime");
+    const holdFill = document.getElementById("holdFill");
+    const wordList = document.getElementById("wordList");
+    const playWordButton = document.getElementById("playWordButton");
+    const revealToneButton = document.getElementById("revealToneButton");
+    const celebrationOverlay = document.getElementById("celebrationOverlay");
+    const celebrationTitle = document.getElementById("celebrationTitle");
+    const celebrationMessage = document.getElementById("celebrationMessage");
+
+    let detector = null;
+    let audioContext = null;
+    let oscillator = null;
+    let gainNode = null;
+    let running = false;
+    let cheatTone = null;
+    let cheatTimer = null;
+    let currentLevelIndex = 0;
+    let currentWordIndex = 0;
+    let currentRound = 1;
+    let currentPathIndex = 0;
+    let matchStartedAt = 0;
+    let advancingWord = false;
+    let levelComplete = false;
+    let toneHintRevealed = true;
+
+    const HOLD_DURATION_MS = 420;
+
+    const LEVELS = [
+      {
+        name: "Level 1",
+        mission: "First greetings",
+        words: [
+          {
+            pinyin: "mā",
+            plain: "ma",
+            hanzi: "妈",
+            toneNumber: 1,
+            toneLabel: "Tone 1: high-level",
+            path: ["high"],
+            prompt: "stay in the high zone",
+            english: "mom",
+            imageAlt: "A mother holding a child",
+            imageUrl: "https://images.unsplash.com/photo-1542385151-efd9000785a0?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "nǐ",
+            plain: "ni",
+            hanzi: "你",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high",
+            english: "you",
+            imageAlt: "A smiling person portrait",
+            imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "hǎo",
+            plain: "hao",
+            hanzi: "好",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high",
+            english: "good",
+            imageAlt: "People making a positive handshake",
+            imageUrl: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=900&q=80"
+          }
+        ]
+      },
+      {
+        name: "Level 2",
+        mission: "Family and animals",
+        words: [
+          {
+            pinyin: "bà",
+            plain: "ba",
+            hanzi: "爸",
+            toneNumber: 4,
+            toneLabel: "Tone 4: falling",
+            path: ["high", "low"],
+            prompt: "high, low",
+            english: "dad",
+            imageAlt: "A father holding a child",
+            imageUrl: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "gǒu",
+            plain: "gou",
+            hanzi: "狗",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high",
+            english: "dog",
+            imageAlt: "A dog looking at the camera",
+            imageUrl: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "māo",
+            plain: "mao",
+            hanzi: "猫",
+            toneNumber: 1,
+            toneLabel: "Tone 1: high-level",
+            path: ["high"],
+            prompt: "stay in the high zone",
+            english: "cat",
+            imageAlt: "A cat sitting indoors",
+            imageUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80"
+          }
+        ]
+      },
+      {
+        name: "Level 3",
+        mission: "Useful everyday words",
+        words: [
+          {
+            pinyin: "shuǐ",
+            plain: "shui",
+            hanzi: "水",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high",
+            english: "water",
+            imageAlt: "Clear water in a glass",
+            imageUrl: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "rén",
+            plain: "ren",
+            hanzi: "人",
+            toneNumber: 2,
+            toneLabel: "Tone 2: rising",
+            path: ["low", "high"],
+            prompt: "low, high",
+            english: "person",
+            imageAlt: "A person smiling outdoors",
+            imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "ài",
+            plain: "ai",
+            hanzi: "爱",
+            toneNumber: 4,
+            toneLabel: "Tone 4: falling",
+            path: ["high", "low"],
+            prompt: "high, low",
+            english: "love",
+            imageAlt: "Hands forming a heart shape",
+            imageUrl: "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=900&q=80"
+          }
+        ]
+      }
+    ];
+
+    const TONES = {
+      high: {
+        display: "High wave",
+        pitch: 440,
+        wave: "sawtooth",
+        className: "high",
+        celebration: "Beautiful lift"
+      },
+      low: {
+        display: "Low wave",
+        pitch: 220,
+        wave: "sine",
+        className: "low",
+        celebration: "Soft landing"
+      },
+      neutral: {
+        display: "Surf up for High Tone",
+        pitch: 330,
+        wave: "sine",
+        className: "neutral",
+        celebration: "Find your wave!"
+      }
+    };
+
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    function currentLevel() {
+      return LEVELS[currentLevelIndex];
+    }
+
+    function currentWord() {
+      return currentLevel().words[currentWordIndex];
+    }
+
+    function shouldHideToneHint() {
+      return currentRound > 1 && !toneHintRevealed;
+    }
+
+    function toneStepLabel(step) {
+      return step === "high" ? "High" : "Low";
+    }
+
+    function levelBadgeText() {
+      return `${currentLevel().name} / ${LEVELS.length}`;
+    }
+
+    function resetHoldMeter() {
+      holdFill.style.width = "0%";
+      holdTime.textContent = `${(HOLD_DURATION_MS / 1000).toFixed(2)}s`;
+      const word = currentWord();
+      const step = word?.path[currentPathIndex];
+      holdLabel.textContent = step
+        ? `Hold ${shouldHideToneHint() ? "this step" : toneStepLabel(step)}`
+        : "Word complete";
+    }
+
+    function updateHoldMeter(progress) {
+      const safeProgress = Math.max(0, Math.min(1, progress));
+      const remainingMs = Math.max(0, Math.ceil(HOLD_DURATION_MS * (1 - safeProgress)));
+      holdFill.style.width = `${Math.round(safeProgress * 100)}%`;
+      holdTime.textContent = safeProgress >= 1
+        ? "Done"
+        : `${(remainingMs / 1000).toFixed(2)}s`;
+    }
+
+    function renderToneHint(word) {
+      if (shouldHideToneHint()) {
+        wordTone.textContent = "Tone hidden. Listen and choose.";
+        wordTone.classList.add("tone-hidden");
+      } else {
+        wordTone.textContent = `${word.toneLabel}: ${word.prompt}`;
+        wordTone.classList.remove("tone-hidden");
+      }
+    }
+
+    function hideMeaningReveal() {
+      meaningCard.classList.remove("visible");
+      meaningPhoto.removeAttribute("src");
+      meaningPhoto.alt = "";
+    }
+
+    function speakEnglishMeaning(word) {
+      if (!word || !("speechSynthesis" in window)) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(`${word.plain} means ${word.english}`);
+      utterance.lang = "en-US";
+      utterance.rate = 0.9;
+      utterance.pitch = 1.04;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function showMeaningReveal(word) {
+      meaningSentence.textContent = `${word.pinyin} means`;
+      meaningText.textContent = word.english;
+      meaningPhoto.src = word.imageUrl;
+      meaningPhoto.alt = word.imageAlt;
+      meaningCard.classList.add("visible");
+      speakEnglishMeaning(word);
+    }
+
+    function renderLevel() {
+      const level = currentLevel();
+      const word = currentWord();
+
+      levelBadge.textContent = levelBadgeText();
+      levelName.textContent = `${level.name}: ${level.mission} - Round ${currentRound}`;
+      levelProgress.textContent = `${Math.min(currentWordIndex + 1, level.words.length)} / ${level.words.length}`;
+      wordHanzi.textContent = word.hanzi;
+      wordPinyin.textContent = word.pinyin;
+      renderToneHint(word);
+
+      pathSteps.innerHTML = "";
+      word.path.forEach((step, index) => {
+        const pathStep = document.createElement("span");
+        pathStep.className = "path-step";
+        if (index < currentPathIndex) pathStep.classList.add("done");
+        if (index === currentPathIndex && !advancingWord) pathStep.classList.add("active");
+        pathStep.textContent = shouldHideToneHint() ? `Step ${index + 1}` : toneStepLabel(step);
+        pathSteps.appendChild(pathStep);
+      });
+
+      wordList.innerHTML = "";
+      level.words.forEach((levelWord, index) => {
+        const marker = document.createElement("span");
+        marker.className = "word-dot";
+        if (index < currentWordIndex || levelComplete) marker.classList.add("done");
+        if (index === currentWordIndex && !levelComplete) marker.classList.add("active");
+        marker.textContent = levelWord.plain;
+        wordList.appendChild(marker);
+      });
+
+      revealToneButton.disabled = !shouldHideToneHint();
+      revealToneButton.textContent = shouldHideToneHint() ? "Reveal Tone" : "Tone Shown";
+      resetHoldMeter();
+    }
+
+    function speakCurrentWord() {
+      const word = currentWord();
+      if (!word || !("speechSynthesis" in window)) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word.hanzi);
+      utterance.lang = "zh-CN";
+      utterance.rate = 0.82;
+      utterance.pitch = word.toneNumber === 1 ? 1.14 : 0.96;
+      if (gainNode && audioContext) {
+        gainNode.gain.setTargetAtTime(0.01, audioContext.currentTime, 0.04);
+        utterance.onend = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+        utterance.onerror = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+      }
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function startLevel(index = 0, round = 1) {
+      hideLevelCelebration();
+      currentLevelIndex = index;
+      currentWordIndex = 0;
+      currentRound = round;
+      currentPathIndex = 0;
+      matchStartedAt = 0;
+      advancingWord = false;
+      levelComplete = false;
+      toneHintRevealed = currentRound === 1;
+      hideMeaningReveal();
+      renderLevel();
+      statusText.className = "status-text neutral";
+      setStatus(`Listen: ${currentWord().pinyin}`);
+      celebrateText.textContent = currentRound === 1
+        ? "Hear the word, then surf the tone."
+        : "Tone hint hidden. Use your ear.";
+      speakCurrentWord();
+    }
+
+    function showLevelCelebration(level, nextLevel, nextRound) {
+      celebrationTitle.textContent = `${level.name} Complete`;
+      celebrationMessage.textContent = nextLevel
+        ? `${nextLevel.name} is unlocked with new words.`
+        : `Round ${nextRound} is starting with hidden hints.`;
+      celebrationOverlay.classList.remove("visible");
+      void celebrationOverlay.offsetWidth;
+      celebrationOverlay.classList.add("visible");
+      celebrationOverlay.setAttribute("aria-hidden", "false");
+    }
+
+    function hideLevelCelebration() {
+      celebrationOverlay.classList.remove("visible");
+      celebrationOverlay.setAttribute("aria-hidden", "true");
+    }
+
+    function completeCurrentWord() {
+      if (advancingWord || levelComplete) return;
+
+      const level = currentLevel();
+      const word = currentWord();
+      advancingWord = true;
+      matchStartedAt = 0;
+      currentPathIndex = word.path.length;
+      renderLevel();
+      statusText.textContent = `${word.pinyin} complete`;
+      celebrateText.textContent = `${word.pinyin} means ${word.english}.`;
+      showMeaningReveal(word);
+
+      setTimeout(() => {
+        currentWordIndex += 1;
+
+        if (currentWordIndex >= level.words.length) {
+          const nextLevelIndex = currentLevelIndex + 1;
+          const hasNextLevel = nextLevelIndex < LEVELS.length;
+          const nextRound = hasNextLevel ? currentRound : currentRound + 1;
+          const nextLevelIndexToStart = hasNextLevel ? nextLevelIndex : 0;
+          const nextLevel = hasNextLevel ? LEVELS[nextLevelIndex] : null;
+
+          statusText.className = "status-text high";
+          statusText.textContent = `${level.name} complete`;
+          celebrateText.textContent = nextLevel
+            ? `${nextLevel.name} is next.`
+            : `Round ${nextRound} is next.`;
+          showLevelCelebration(level, nextLevel, nextRound);
+          setTimeout(() => {
+            startLevel(nextLevelIndexToStart, nextRound);
+          }, 2600);
+          return;
+        }
+
+        advancingWord = false;
+        currentPathIndex = 0;
+        matchStartedAt = 0;
+        toneHintRevealed = currentRound === 1;
+        hideMeaningReveal();
+        renderLevel();
+        statusText.className = "status-text neutral";
+        setStatus(`Listen: ${currentWord().pinyin}`);
+        celebrateText.textContent = shouldHideToneHint()
+          ? "New word. Tone hint hidden."
+          : "New word. Listen, then move.";
+        speakCurrentWord();
+      }, 2300);
+    }
+
+    function checkWordMatch(toneName) {
+      if (!running || advancingWord || levelComplete || toneName === "neutral") {
+        matchStartedAt = 0;
+        updateHoldMeter(0);
+        return;
+      }
+
+      const word = currentWord();
+      const expectedTone = word.path[currentPathIndex];
+
+      if (toneName !== expectedTone) {
+        matchStartedAt = 0;
+        updateHoldMeter(0);
+        return;
+      }
+
+      const now = performance.now();
+      if (!matchStartedAt) {
+        matchStartedAt = now;
+        updateHoldMeter(0);
+        return;
+      }
+
+      const holdProgress = (now - matchStartedAt) / HOLD_DURATION_MS;
+      updateHoldMeter(holdProgress);
+
+      if (now - matchStartedAt > HOLD_DURATION_MS) {
+        updateHoldMeter(1);
+        currentPathIndex += 1;
+        matchStartedAt = 0;
+
+        if (currentPathIndex >= word.path.length) {
+          completeCurrentWord();
+        } else {
+          renderLevel();
+        }
+      }
+    }
+
+    function resizeCanvasToVideo() {
+      if (!video.videoWidth || !video.videoHeight) return;
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+    }
+
+    async function setupWebcam() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 960 },
+          height: { ideal: 540 },
+          facingMode: "user"
+        },
+        audio: false
+      });
+
+      video.srcObject = stream;
+      await video.play();
+      resizeCanvasToVideo();
+    }
+
+    async function setupHandTracking() {
+      await tf.setBackend("webgl");
+      await tf.ready();
+
+      detector = await handPoseDetection.createDetector(
+        handPoseDetection.SupportedModels.MediaPipeHands,
+        {
+          runtime: "mediapipe",
+          modelType: "lite",
+          maxHands: 1,
+          solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4"
+        }
+      );
+    }
+
+    function setupAudio() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioContextClass();
+      oscillator = audioContext.createOscillator();
+      gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.value = 330;
+      gainNode.gain.value = 0.06;
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start();
+    }
+
+    function drawCameraFrame() {
+      resizeCanvasToVideo();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        ctx.save();
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.fillStyle = "#ffe7a7";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#8ecae6";
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.5, canvas.height * 0.6, canvas.width * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#219ebc";
+        ctx.font = "bold 34px Quicksand, Nunito, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Surf cam warming up", canvas.width / 2, canvas.height / 2);
+        ctx.restore();
+      }
+
+    }
+
+    function toneFromY(normalizedY) {
+      if (normalizedY < 0.3) return "high";
+      if (normalizedY > 0.7) return "low";
+      return "neutral";
+    }
+
+    function applyTone(toneName, normalizedY, forced) {
+      const tone = TONES[toneName];
+      const word = currentWord();
+      const expectedTone = word?.path[currentPathIndex];
+      const matched = word && toneName === expectedTone && toneName !== "neutral";
+
+      if (!advancingWord && !levelComplete) {
+        if (matched) {
+          statusText.textContent = `${word.pinyin}: ${tone.display}`;
+          celebrateText.textContent = currentPathIndex + 1 >= word.path.length
+            ? "Hold it there."
+            : "Good. Keep following the path.";
+        } else if (toneName === "neutral") {
+          statusText.textContent = `Say ${word.pinyin}`;
+          celebrateText.textContent = shouldHideToneHint()
+            ? "Tone hint hidden. Listen and choose."
+            : word.prompt;
+        } else {
+          statusText.textContent = forced ? `${tone.display} demo` : tone.display;
+          celebrateText.textContent = shouldHideToneHint()
+            ? `Try another zone for ${word.pinyin}.`
+            : `Next path step: ${toneStepLabel(expectedTone)}.`;
+        }
+      }
+
+      statusText.className = `status-text ${tone.className}`;
+      zoneOverlay.className = `zone-overlay ${toneName}`;
+      yReadout.textContent = typeof normalizedY === "number" ? normalizedY.toFixed(2) : "--";
+      pitchReadout.textContent = `${tone.pitch}Hz`;
+
+      if (oscillator && audioContext) {
+        oscillator.type = tone.wave;
+        oscillator.frequency.cancelScheduledValues(audioContext.currentTime);
+        oscillator.frequency.setTargetAtTime(tone.pitch, audioContext.currentTime, 0.075);
+      }
+
+      if (toneName !== "neutral") {
+        toneCard.classList.remove("pulse");
+        void toneCard.offsetWidth;
+        toneCard.classList.add("pulse");
+      }
+    }
+
+    function placeFingerDot(indexTip) {
+      const cameraBox = canvas.getBoundingClientRect();
+      const shellBox = canvas.parentElement.getBoundingClientRect();
+
+      const normalizedX = Math.min(1, Math.max(0, indexTip.x / video.videoWidth));
+      const normalizedY = Math.min(1, Math.max(0, indexTip.y / video.videoHeight));
+
+      const canvasX = canvas.width - (normalizedX * canvas.width);
+      const canvasY = normalizedY * canvas.height;
+      const screenX = (canvasX / canvas.width) * cameraBox.width + cameraBox.left - shellBox.left;
+      const screenY = (canvasY / canvas.height) * cameraBox.height + cameraBox.top - shellBox.top;
+
+      fingerDot.style.left = `${screenX}px`;
+      fingerDot.style.top = `${screenY}px`;
+      fingerDot.classList.add("visible");
+    }
+
+    function hideFingerDot() {
+      fingerDot.classList.remove("visible");
+    }
+
+    async function detectLoop() {
+      if (!running) return;
+
+      drawCameraFrame();
+
+      let detectedTone = "neutral";
+      let normalizedY = null;
+
+      if (detector && video.readyState >= 2) {
+        try {
+          const hands = await detector.estimateHands(video, { flipHorizontal: false });
+          if (hands.length && hands[0].keypoints && hands[0].keypoints[8]) {
+            const indexTip = hands[0].keypoints[8];
+            normalizedY = Math.min(1, Math.max(0, indexTip.y / video.videoHeight));
+            detectedTone = toneFromY(normalizedY);
+            placeFingerDot(indexTip);
+          } else {
+            hideFingerDot();
+          }
+        } catch (error) {
+          console.warn("Hand tracking skipped this frame:", error);
+        }
+      }
+
+      const activeTone = cheatTone || detectedTone;
+      const activeY = cheatTone ? (cheatTone === "high" ? 0.12 : 0.88) : normalizedY;
+
+      applyTone(activeTone, activeY, Boolean(cheatTone));
+      checkWordMatch(activeTone);
+
+      requestAnimationFrame(detectLoop);
+    }
+
+    function triggerCheat(toneName) {
+      cheatTone = toneName;
+      applyTone(toneName, toneName === "high" ? 0.12 : 0.88, true);
+      clearTimeout(cheatTimer);
+      cheatTimer = setTimeout(() => {
+        cheatTone = null;
+        if (!running) applyTone("neutral", null, false);
+      }, 2500);
+    }
+
+    startButton.addEventListener("click", async () => {
+      if (running && levelComplete) {
+        startButton.disabled = true;
+        startButton.textContent = "Surfing Now";
+        startLevel(0);
+        return;
+      }
+
+      startButton.disabled = true;
+      startButton.textContent = "Starting...";
+      setStatus("Warming up Surf Cam");
+
+      try {
+        if (!audioContext) setupAudio();
+        if (audioContext.state === "suspended") await audioContext.resume();
+
+        await setupWebcam();
+        await setupHandTracking();
+
+        running = true;
+        startButton.textContent = "Surfing Now";
+        startLevel(0);
+        detectLoop();
+      } catch (error) {
+        console.error(error);
+        startButton.disabled = false;
+        startButton.textContent = "Start Surf";
+        statusText.className = "status-text neutral";
+        setStatus("Surf cam needs permission");
+        celebrateText.textContent = "Allow webcam access when the browser asks.";
+      }
+    });
+
+    playWordButton.addEventListener("click", () => {
+      speakCurrentWord();
+    });
+
+    revealToneButton.addEventListener("click", () => {
+      toneHintRevealed = true;
+      renderLevel();
+      celebrateText.textContent = currentWord().prompt;
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (key === "h") {
+        triggerCheat("high");
+        if (audioContext && audioContext.state === "suspended") audioContext.resume();
+      }
+      if (key === "l") {
+        triggerCheat("low");
+        if (audioContext && audioContext.state === "suspended") audioContext.resume();
+      }
+    });
+
+    drawCameraFrame();
+    renderLevel();
+    applyTone("neutral", null, false);
+  </script>
+</body>
+</html>
