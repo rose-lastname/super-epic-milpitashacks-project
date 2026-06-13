@@ -830,6 +830,90 @@
       100% { transform: scale(1); }
     }
 
+    .celebration-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(2, 48, 71, 0.42);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .celebration-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .celebration-card {
+      width: min(720px, 100%);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 232, 0.86)),
+        linear-gradient(135deg, rgba(255, 183, 3, 0.22), rgba(142, 202, 230, 0.28));
+      box-shadow: 0 28px 70px rgba(2, 48, 71, 0.28);
+      padding: clamp(24px, 6vw, 44px);
+      text-align: center;
+    }
+
+    .celebration-card h2 {
+      margin: 0;
+      color: var(--deep-space-blue);
+      font-size: clamp(2.3rem, 7vw, 4.6rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .celebration-card p {
+      margin: 12px 0 0;
+      color: var(--soft-ink);
+      font-size: clamp(1rem, 2.5vw, 1.3rem);
+      font-weight: 1000;
+    }
+
+    .animal-dance-floor {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(8px, 3vw, 18px);
+      margin: clamp(20px, 5vw, 34px) auto 0;
+      max-width: 540px;
+    }
+
+    .dancing-animal {
+      display: grid;
+      place-items: center;
+      min-height: clamp(72px, 16vw, 118px);
+      border: 1px solid rgba(255, 255, 255, 0.86);
+      background: rgba(255, 255, 255, 0.54);
+      font-size: clamp(2.4rem, 9vw, 4.8rem);
+      box-shadow: 0 16px 34px rgba(2, 48, 71, 0.12);
+      transform-origin: 50% 100%;
+      animation: animalDance 620ms ease-in-out infinite;
+    }
+
+    .dancing-animal:nth-child(2) {
+      animation-delay: 110ms;
+    }
+
+    .dancing-animal:nth-child(3) {
+      animation-delay: 220ms;
+    }
+
+    .dancing-animal:nth-child(4) {
+      animation-delay: 330ms;
+    }
+
+    @keyframes animalDance {
+      0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+      25% { transform: translateY(-12px) rotate(-7deg) scale(1.06); }
+      50% { transform: translateY(0) rotate(6deg) scale(0.98); }
+      75% { transform: translateY(-8px) rotate(7deg) scale(1.04); }
+    }
+
     .title-card,
     .camera-shell,
     .tone-card,
@@ -856,7 +940,9 @@
     .hold-fill,
     .mascot,
     .mascot-smile,
-    .sparkle {
+    .sparkle,
+    .celebration-card,
+    .dancing-animal {
       border-radius: 0;
     }
 
@@ -980,6 +1066,19 @@
     </section>
   </main>
 
+  <div id="celebrationOverlay" class="celebration-overlay" aria-live="polite" aria-hidden="true">
+    <div class="celebration-card">
+      <h2 id="celebrationTitle">Level Complete</h2>
+      <p id="celebrationMessage">The dance party is starting.</p>
+      <div class="animal-dance-floor" aria-label="Dancing animals">
+        <span class="dancing-animal" aria-hidden="true">🐼</span>
+        <span class="dancing-animal" aria-hidden="true">🐯</span>
+        <span class="dancing-animal" aria-hidden="true">🐵</span>
+        <span class="dancing-animal" aria-hidden="true">🐰</span>
+      </div>
+    </div>
+  </div>
+
   <script>
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
@@ -1004,6 +1103,9 @@
     const wordList = document.getElementById("wordList");
     const playWordButton = document.getElementById("playWordButton");
     const revealToneButton = document.getElementById("revealToneButton");
+    const celebrationOverlay = document.getElementById("celebrationOverlay");
+    const celebrationTitle = document.getElementById("celebrationTitle");
+    const celebrationMessage = document.getElementById("celebrationMessage");
 
     let detector = null;
     let audioContext = null;
@@ -1195,6 +1297,7 @@
     }
 
     function startLevel(index = 0, round = 1) {
+      hideLevelCelebration();
       currentLevelIndex = index;
       currentWordIndex = 0;
       currentRound = round;
@@ -1210,6 +1313,20 @@
         ? "Hear the word, then surf the tone."
         : "Tone hint hidden. Use your ear.";
       speakCurrentWord();
+    }
+
+    function showLevelCelebration(round) {
+      celebrationTitle.textContent = `Round ${round} Complete`;
+      celebrationMessage.textContent = "Dancing animals unlocked the next surf loop.";
+      celebrationOverlay.classList.remove("visible");
+      void celebrationOverlay.offsetWidth;
+      celebrationOverlay.classList.add("visible");
+      celebrationOverlay.setAttribute("aria-hidden", "false");
+    }
+
+    function hideLevelCelebration() {
+      celebrationOverlay.classList.remove("visible");
+      celebrationOverlay.setAttribute("aria-hidden", "true");
     }
 
     function completeCurrentWord() {
@@ -1231,10 +1348,11 @@
           const nextRound = currentRound + 1;
           statusText.className = "status-text high";
           statusText.textContent = `Round ${currentRound} complete`;
-          celebrateText.textContent = "Looping Level 1 with hidden hints.";
+          celebrateText.textContent = "Dance party, then next round.";
+          showLevelCelebration(currentRound);
           setTimeout(() => {
             startLevel(currentLevelIndex, nextRound);
-          }, 950);
+          }, 2600);
           return;
         }
 
