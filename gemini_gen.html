@@ -381,29 +381,34 @@
         }
 
         // SIGNAL PROCESSING ENGINE
+// --- FIXED MIRROR ALIGNMENT PROCESSING ENGINE ---
         function handleTracking(hands) {
             if (hands.length > 0 && tracingActive) {
                 let hand = hands[0];
                 let indexFinger = hand.landmarks[8];
-                let x = indexFinger[0];
+                let rawX = indexFinger[0];
                 let y = indexFinger[1];
 
-                // Draw finger point indicator ball
+                // Calculate the mirrored coordinate so logic matches the display
+                let mirroredX = canvas.width - rawX;
+
+                // Draw finger point indicator ball accurately on the overlay canvas
                 ctx.save();
                 ctx.fillStyle = '#ff7b7b';
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.arc(canvas.width - x, y, 11, 0, 2 * Math.PI);
+                ctx.arc(mirroredX, y, 11, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.stroke();
                 ctx.restore();
 
-                // Continuous theremin frequency logic
+                // Continuous theremin frequency math mappings
                 let normalizedY = y / canvas.height;
                 let calculatedFreq = 466 - (normalizedY * (466 - 220)); 
                 setPitch(calculatedFreq);
 
+                // Track spatial positions using the actual mirrored boundaries
                 let currentZone = (y < canvas.height / 2) ? "Top" : "Bottom";
                 if (zoneHistory.length === 0 || zoneHistory[zoneHistory.length - 1] !== currentZone) {
                     zoneHistory.push(currentZone);
