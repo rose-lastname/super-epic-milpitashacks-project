@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToneSurfer Mandarin 🌊</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f7f9f6; 
+            --primary-color: #6ebca7; 
+            --text-dark: #334e43; 
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.8rem;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 640px;
+            height: 480px;
+            margin: 0 auto 25px auto;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(51, 78, 67, 0.1);
+            border: 8px solid white;
+            background: #e2ede8;
+        }
+
+        .btn {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.3rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0px #539d89;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ToneSurfer Mandarin 🌊</h1>
+        <p>Let's get the video connection working first!</p>
+
+        <div id="canvas-container"></div>
+
+        <button id="start-btn" class="btn">Connect Camera 🚀</button>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('start-btn');
+        let videoFeed;
+        let streamActive = false;
+
+        function setup() {
+            // Instantiate canvas inside the placeholder frame
+            let cnv = createCanvas(640, 480);
+            cnv.parent('canvas-container');
+            background('#e2ede8'); // Solid soft color before camera turns on
+        }
+
+        function draw() {
+            // If the user hasn't clicked start yet, display a placeholder screen
+            if (!streamActive) {
+                background('#e2ede8');
+                fill('#334e43');
+                textSize(20);
+                textAlign(CENTER, CENTER);
+                text("Camera Offline. Click the button below! 👇", width/2, height/2);
+                return;
+            }
+
+            // Render the active webcam frames mirrored to the display canvas
+            translate(width, 0);
+            scale(-1, 1);
+            image(videoFeed, 0, 0, width, height);
+        }
+
+        startBtn.addEventListener('click', () => {
+            // Native environment call specifically for file:/// streams
+            videoFeed = createCapture(VIDEO, function(stream) {
+                console.log("Webcam stream verified successfully!");
+                streamActive = true;
+                startBtn.classList.add('hidden');
+            });
+            videoFeed.size(640, 480);
+            videoFeed.hide(); // Suppress double HTML mirror tags
+        });
+    </script>
+</body>
+</html>
