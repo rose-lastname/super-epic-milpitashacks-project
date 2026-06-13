@@ -1,614 +1,1396 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToneSurfer Mandarin 🌊</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Noto+Serif+SC:wght@700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ToneSurfer Mandarin</title>
 
-    <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.22.0/dist/tf-converter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.22.0/dist/tf-backend-webgl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"></script>
 
-    <style>
-        :root {
-            --bg-color: #f0f7f4; 
-            --primary-color: #4ba38d; 
-            --accent-pink: #ff9b9b; 
-            --accent-yellow: #ffd24d;
-            --text-dark: #2c3e35; 
-            --card-bg: #ffffff;
-            --success-color: #a8e6cf;
-            --fail-color: #ffaaa6;
-        }
+  <style>
+    :root {
+      color-scheme: light;
+      --sky-blue-light: #8ecae6ff;
+      --blue-green: #219ebcff;
+      --deep-space-blue: #023047ff;
+      --amber-flame: #ffb703ff;
+      --princeton-orange: #fb8500ff;
+      --cream: #fff8e8;
+      --butter: var(--amber-flame);
+      --butter-soft: #ffe7a7;
+      --sage: var(--sky-blue-light);
+      --sage-deep: var(--blue-green);
+      --peach: #ffc57f;
+      --peach-deep: var(--princeton-orange);
+      --terracotta: var(--princeton-orange);
+      --sand: #f9e2bb;
+      --rose: #ffcf9c;
+      --ink: var(--deep-space-blue);
+      --soft-ink: rgba(2, 48, 71, 0.64);
+      --white: #ffffff;
+      --shadow: rgba(2, 48, 71, 0.15);
+      --shadow-soft: rgba(2, 48, 71, 0.08);
+    }
 
-        body {
-            font-family: 'Quicksand', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-dark);
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            user-select: none;
-        }
+    * {
+      box-sizing: border-box;
+    }
 
-        .container {
-            max-width: 780px;
-            width: 100%;
-            text-align: center;
-        }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Quicksand", "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 8% 18%, rgba(251, 133, 0, 0.16) 0 74px, transparent 75px),
+        radial-gradient(circle at 90% 10%, rgba(255, 183, 3, 0.28) 0 88px, transparent 89px),
+        radial-gradient(circle at 86% 88%, rgba(142, 202, 230, 0.34) 0 126px, transparent 127px),
+        linear-gradient(145deg, #fff8e8 0%, #fff1d4 46%, #f8e5c3 100%);
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      overflow-x: hidden;
+    }
 
-        h1 {
-            font-family: 'Fredoka', sans-serif;
-            font-weight: 700;
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin: 0 0 5px 0;
-            text-shadow: 2px 2px 0px white;
-        }
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      left: -8vw;
+      right: -8vw;
+      pointer-events: none;
+      z-index: -1;
+    }
 
-        p.subtitle {
-            font-size: 1.2rem;
-            margin: 0 0 20px 0;
-            font-weight: 500;
-        }
+    body::before {
+      bottom: 0;
+      height: 23vh;
+      background:
+        radial-gradient(128px 36px at 7% 34%, rgba(142, 202, 230, 0.38) 0 62%, transparent 63%),
+        radial-gradient(142px 42px at 27% 50%, rgba(251, 133, 0, 0.2) 0 62%, transparent 63%),
+        radial-gradient(132px 40px at 48% 32%, rgba(255, 183, 3, 0.38) 0 62%, transparent 63%),
+        radial-gradient(152px 43px at 72% 48%, rgba(33, 158, 188, 0.22) 0 62%, transparent 63%),
+        radial-gradient(134px 38px at 94% 35%, rgba(251, 133, 0, 0.16) 0 62%, transparent 63%),
+        linear-gradient(180deg, transparent 0%, rgba(247, 223, 186, 0.74) 100%);
+    }
 
-        .game-layout {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
+    body::after {
+      top: 0;
+      height: 100%;
+      background-image:
+        radial-gradient(circle, rgba(251, 133, 0, 0.16) 0 5px, transparent 6px),
+        radial-gradient(circle, rgba(33, 158, 188, 0.18) 0 4px, transparent 5px),
+        radial-gradient(circle, rgba(255, 183, 3, 0.34) 0 6px, transparent 7px);
+      background-position: 9% 26%, 78% 50%, 51% 10%;
+      background-size: 250px 280px, 330px 350px, 280px 300px;
+      opacity: 0.72;
+    }
 
-        .video-viewport {
-            position: relative;
-            width: 480px;
-            height: 360px;
-            border-radius: 30px;
-            overflow: hidden;
-            box-shadow: 0 16px 32px rgba(44, 62, 53, 0.15);
-            border: 8px solid white;
-            background: #e2ede8;
-        }
+    .app {
+      width: min(1120px, 100%);
+      display: grid;
+      gap: 20px;
+      position: relative;
+    }
 
-        #webcam {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 480px;
-            height: 360px;
-            object-fit: cover;
-            transform: scaleX(-1);
-            z-index: 1;
-        }
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: stretch;
+    }
 
-        #game-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 480px;
-            height: 360px;
-            z-index: 2;
-            pointer-events: none; 
-        }
+    .title-card,
+    .camera-shell,
+    .tone-card,
+    .meter,
+    .hint,
+    .start-button,
+    .tone-chip {
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 32px;
+      box-shadow: 0 22px 55px var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
 
-        .sidebar-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 240px;
-        }
+    .title-card {
+      min-height: 132px;
+      padding: 22px 28px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 251, 239, 0.58)),
+        linear-gradient(135deg, var(--butter-soft), rgba(142, 202, 230, 0.58));
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
 
-        .card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 24px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.02);
-            border: 3px solid #eef3f0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.3s ease;
-        }
+    .title-card::after {
+      content: "";
+      position: absolute;
+      right: 28px;
+      top: 20px;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 32%, rgba(255, 255, 255, 0.82) 0 8px, transparent 9px),
+        linear-gradient(145deg, var(--amber-flame), var(--princeton-orange));
+      box-shadow: 0 14px 24px rgba(251, 133, 0, 0.18);
+      opacity: 0.9;
+    }
 
-        #prompt-card {
-            min-height: 180px;
-        }
+    h1 {
+      margin: 0;
+      font-size: clamp(2.25rem, 5vw, 4.2rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+      font-weight: 1000;
+    }
 
-        .card-label {
-            margin: 0; 
-            font-family: 'Fredoka', sans-serif;
-            font-size: 0.95rem; 
-            color: #7a9287;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+    .title-mark {
+      color: var(--sage-deep);
+    }
 
-        .chinese-char {
-            font-family: 'Noto Serif SC', serif;
-            font-size: 5rem;
-            margin: 5px 0;
-            font-weight: 700;
-            color: #1a2c24;
-        }
+    .subtitle {
+      margin: 0;
+      color: var(--soft-ink);
+      font-weight: 850;
+      font-size: 1.05rem;
+    }
 
-        .pinyin {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 1.8rem;
-            margin: 0;
-            color: var(--primary-color);
-            font-weight: 600;
-        }
+    .top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      position: relative;
+      z-index: 1;
+    }
 
-        .meaning {
-            font-size: 1.1rem;
-            margin: 5px 0 0 0;
-            font-weight: 700;
-            color: #61776c;
-        }
+    .nav-pill,
+    .tone-chip {
+      align-items: center;
+      display: inline-flex;
+      gap: 8px;
+      min-height: 38px;
+      padding: 8px 12px;
+      color: var(--soft-ink);
+      background: rgba(255, 255, 255, 0.56);
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 950;
+    }
 
-        #status-card {
-            font-family: 'Fredoka', sans-serif;
-            font-size: 1.3rem;
-            min-height: 70px;
-            text-align: center;
-            font-weight: 600;
-            line-height: 1.4;
-        }
+    .nav-icon,
+    .chip-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-block;
+      position: relative;
+      flex: 0 0 auto;
+    }
 
-        .controls-row {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-            margin-top: 10px;
-        }
+    .nav-icon.home {
+      background: var(--sage);
+    }
 
-        select {
-            padding: 12px 24px;
-            font-family: 'Quicksand', sans-serif;
-            font-size: 1rem;
-            font-weight: 700;
-            border-radius: 50px;
-            border: 3px solid var(--primary-color);
-            background: white;
-            color: var(--text-dark);
-            outline: none;
-            width: 320px;
-            cursor: pointer;
-            box-shadow: 0 4px 0px rgba(0,0,0,0.05);
-        }
+    .nav-icon.home::before {
+      content: "";
+      position: absolute;
+      inset: 5px 4px 4px;
+      border-radius: 5px;
+      background: var(--white);
+    }
 
-        .btn {
-            font-family: 'Fredoka', sans-serif;
-            font-weight: 700;
-            font-size: 1.5rem;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 14px 45px;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 6px 0px #377d6c;
-            transition: all 0.1s ease;
-        }
+    .nav-icon.spark {
+      background: var(--butter);
+    }
 
-        .btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0px #377d6c;
-        }
+    .nav-icon.spark::before,
+    .nav-icon.spark::after,
+    .sparkle::before,
+    .sparkle::after {
+      content: "";
+      position: absolute;
+      background: var(--white);
+      border-radius: 999px;
+    }
 
-        .hidden {
-            display: none !important;
-        }
-    </style>
+    .nav-icon.spark::before {
+      width: 12px;
+      height: 4px;
+      left: 4px;
+      top: 8px;
+    }
+
+    .nav-icon.spark::after {
+      width: 4px;
+      height: 12px;
+      left: 8px;
+      top: 4px;
+    }
+
+    .start-button {
+      align-items: center;
+      align-self: stretch;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.72), transparent 52%),
+        linear-gradient(135deg, var(--peach), var(--butter));
+      color: var(--deep-space-blue);
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      min-height: 104px;
+      min-width: 188px;
+      padding: 0 26px;
+      font: inherit;
+      font-size: 1.08rem;
+      font-weight: 1000;
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .start-button::before {
+      content: "";
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background:
+        linear-gradient(90deg, transparent 0 43%, var(--white) 44% 56%, transparent 57%),
+        linear-gradient(0deg, transparent 0 43%, var(--white) 44% 56%, transparent 57%),
+        var(--sage-deep);
+      box-shadow: inset 0 -4px 0 rgba(74, 74, 63, 0.08);
+    }
+
+    .start-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 28px 60px rgba(251, 133, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    .start-button:active {
+      transform: translateY(2px);
+    }
+
+    .start-button:disabled {
+      cursor: default;
+      opacity: 0.82;
+      transform: none;
+    }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .camera-shell {
+      position: relative;
+      overflow: hidden;
+      min-height: 500px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 52% 16%, rgba(255, 183, 3, 0.78) 0 74px, transparent 75px),
+        linear-gradient(180deg, rgba(251, 133, 0, 0.22) 0%, rgba(255, 240, 201, 0.72) 48%, rgba(142, 202, 230, 0.48) 100%),
+        var(--white);
+    }
+
+    .camera-shell::before {
+      content: "Surf Cam";
+      position: absolute;
+      left: 24px;
+      top: 22px;
+      z-index: 4;
+      padding: 11px 16px 11px 44px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 999px;
+      color: var(--deep-space-blue);
+      background:
+        radial-gradient(circle at 25px 50%, var(--sage-deep) 0 9px, transparent 10px),
+        rgba(255, 255, 255, 0.68);
+      font-size: 0.92rem;
+      font-weight: 1000;
+      box-shadow: 0 14px 28px var(--shadow-soft);
+      backdrop-filter: blur(12px);
+    }
+
+    canvas {
+      width: calc(100% - 42px);
+      height: calc(100% - 42px);
+      min-height: 456px;
+      display: block;
+      object-fit: cover;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.9) 0 8px, transparent 9px),
+        linear-gradient(180deg, #ffc57f 0%, #fff0c9 47%, #8ecae6 100%);
+      border-radius: 38px;
+      box-shadow: inset 0 0 0 10px rgba(255, 251, 239, 0.42), 0 20px 50px rgba(136, 105, 73, 0.16);
+    }
+
+    video {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    .zone-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      opacity: 0.98;
+    }
+
+    .zone {
+      position: relative;
+      border: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 1000;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+
+    .zone span {
+      max-width: min(86%, 360px);
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: 0 14px 30px var(--shadow-soft);
+      text-align: center;
+      font-size: clamp(1rem, 2vw, 1.22rem);
+      backdrop-filter: blur(10px);
+    }
+
+    .zone-high {
+      background: linear-gradient(180deg, rgba(255, 232, 173, 0.42), transparent 74%);
+    }
+
+    .zone-low {
+      background: linear-gradient(0deg, rgba(142, 202, 230, 0.45), transparent 74%);
+    }
+
+    .zone-overlay.high .zone-high {
+      border-color: rgba(255, 183, 3, 0.72);
+      background: rgba(255, 183, 3, 0.28);
+    }
+
+    .zone-overlay.low .zone-low {
+      border-color: rgba(33, 158, 188, 0.64);
+      background: rgba(142, 202, 230, 0.38);
+    }
+
+    .finger-dot {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 5px solid var(--white);
+      background:
+        radial-gradient(circle at 38% 33%, rgba(255, 255, 255, 0.95) 0 5px, transparent 6px),
+        var(--terracotta);
+      box-shadow: 0 0 0 9px rgba(251, 133, 0, 0.18), 0 10px 20px rgba(2, 48, 71, 0.18);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 140ms ease;
+      z-index: 5;
+    }
+
+    .finger-dot.visible {
+      opacity: 1;
+    }
+
+    .status-panel {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      position: relative;
+    }
+
+    .tone-card {
+      min-height: 214px;
+      padding: 22px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(255, 251, 239, 0.58)),
+        linear-gradient(145deg, var(--white), var(--butter-soft));
+      display: grid;
+      align-content: center;
+      gap: 12px;
+    }
+
+    .status-label {
+      margin: 0;
+      color: var(--sage-deep);
+      font-weight: 1000;
+      font-size: 0.92rem;
+    }
+
+    .status-text {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.05;
+      font-weight: 1000;
+      letter-spacing: 0;
+    }
+
+    .status-text.high {
+      color: var(--terracotta);
+    }
+
+    .status-text.low {
+      color: var(--sage-deep);
+    }
+
+    .status-text.neutral {
+      color: var(--peach-deep);
+    }
+
+    .tone-chips {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .tone-chip {
+      justify-content: center;
+      min-height: 58px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: 0 16px 34px var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+    }
+
+    .chip-icon.high {
+      background: var(--peach);
+    }
+
+    .chip-icon.high::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 10px;
+      width: 10px;
+      height: 10px;
+      border-left: 4px solid var(--white);
+      border-top: 4px solid var(--white);
+      transform: rotate(45deg);
+    }
+
+    .chip-icon.low {
+      background: var(--sage);
+    }
+
+    .chip-icon.low::before {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 3px;
+      width: 10px;
+      height: 10px;
+      border-right: 4px solid var(--white);
+      border-bottom: 4px solid var(--white);
+      transform: rotate(45deg);
+    }
+
+    .level-panel {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      border-radius: 32px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 248, 232, 0.56)),
+        rgba(142, 202, 230, 0.18);
+      box-shadow: 0 16px 34px var(--shadow-soft), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+    }
+
+    .level-header,
+    .word-list {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-between: space-between;
+    }
+
+    .level-name,
+    .level-progress,
+    .word-dot {
+      border-radius: 999px;
+      color: var(--deep-space-blue);
+      font-size: 0.86rem;
+      font-weight: 1000;
+      padding: 8px 11px;
+    }
+
+    .level-name {
+      background: rgba(142, 202, 230, 0.34);
+    }
+
+    .level-progress {
+      background: rgba(255, 183, 3, 0.22);
+    }
+
+    .word-card {
+      align-items: center;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 12px;
+      padding: 14px;
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.68);
+    }
+
+    .hanzi {
+      display: grid;
+      place-items: center;
+      width: 66px;
+      height: 66px;
+      border-radius: 24px;
+      color: var(--white);
+      background: linear-gradient(145deg, var(--blue-green), var(--deep-space-blue));
+      font-size: 2.2rem;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    .word-copy {
+      min-width: 0;
+    }
+
+    .pinyin {
+      display: block;
+      color: var(--deep-space-blue);
+      font-size: 1.6rem;
+      font-weight: 1000;
+      line-height: 1.05;
+    }
+
+    .word-tone {
+      display: block;
+      margin-top: 5px;
+      color: var(--soft-ink);
+      font-size: 0.92rem;
+      font-weight: 900;
+    }
+
+    .word-list {
+      justify-content: flex-start;
+    }
+
+    .word-dot {
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--soft-ink);
+    }
+
+    .word-dot.active {
+      background: rgba(255, 183, 3, 0.28);
+      color: var(--deep-space-blue);
+    }
+
+    .word-dot.done {
+      background: rgba(33, 158, 188, 0.2);
+      color: var(--blue-green);
+    }
+
+    .audio-button {
+      border: 0;
+      border-radius: 999px;
+      min-height: 46px;
+      color: var(--white);
+      background: linear-gradient(145deg, var(--blue-green), var(--deep-space-blue));
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 1000;
+      padding: 10px 14px;
+      box-shadow: 0 14px 28px rgba(2, 48, 71, 0.16);
+    }
+
+    .level-actions {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .reveal-button {
+      border: 0;
+      border-radius: 999px;
+      min-height: 46px;
+      color: var(--deep-space-blue);
+      background: rgba(255, 183, 3, 0.32);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 1000;
+      padding: 10px 14px;
+      box-shadow: 0 14px 28px rgba(2, 48, 71, 0.08);
+    }
+
+    .reveal-button:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+
+    .path-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .path-step {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--soft-ink);
+      font-size: 0.78rem;
+      font-weight: 1000;
+      padding: 7px 9px;
+    }
+
+    .path-step.active {
+      background: rgba(255, 183, 3, 0.32);
+      color: var(--deep-space-blue);
+    }
+
+    .path-step.done {
+      background: rgba(33, 158, 188, 0.2);
+      color: var(--blue-green);
+    }
+
+    .hold-meter {
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    }
+
+    .hold-meter-top {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      color: var(--soft-ink);
+      font-size: 0.82rem;
+      font-weight: 1000;
+    }
+
+    .hold-track {
+      height: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(2, 48, 71, 0.1);
+    }
+
+    .hold-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue-green), var(--amber-flame), var(--princeton-orange));
+      transition: width 80ms linear;
+    }
+
+    .tone-hidden {
+      color: var(--soft-ink);
+      font-style: normal;
+    }
+
+    .readout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .meter {
+      min-height: 82px;
+      background: rgba(255, 255, 262, 0.62);
+      padding: 15px;
+      color: var(--soft-ink);
+      font-weight: 900;
+    }
+
+    .meter strong {
+      display: block;
+      margin-top: 3px;
+      color: var(--ink);
+      font-size: 1.42rem;
+      font-weight: 1000;
+    }
+
+    .hint {
+      margin: 0;
+      padding: 16px;
+      color: var(--ink);
+      background: rgba(255, 232, 173, 0.52);
+      font-size: 1.04rem;
+      font-weight: 820;
+      line-height: 1.42;
+    }
+
+    .mascot {
+      position: absolute;
+      right: 28px;
+      bottom: 22px;
+      z-index: 4;
+      width: 92px;
+      height: 84px;
+      border-radius: 44px 44px 30px 30px;
+      background: var(--sage);
+      box-shadow: 0 18px 35px rgba(33, 158, 188, 0.22);
+      pointer-events: none;
+    }
+
+    .mascot::before,
+    .mascot::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--ink);
+      box-shadow: 0 0 0 7px rgba(255, 255, 255, 0.42);
+    }
+
+    .mascot::before {
+      left: 24px;
+    }
+
+    .mascot::after {
+      right: 24px;
+    }
+
+    .mascot-smile {
+      position: absolute;
+      left: 34px;
+      top: 48px;
+      width: 24px;
+      height: 13px;
+      border-bottom: 4px solid rgba(2, 48, 71, 0.8);
+      border-radius: 0 0 999px 999px;
+    }
+
+    .sparkle {
+      position: absolute;
+      z-index: 3;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255, 232, 173, 0.72);
+      box-shadow: 0 12px 24px rgba(251, 133, 0, 0.12);
+      pointer-events: none;
+    }
+
+    .sparkle.one {
+      left: 8%;
+      bottom: 18%;
+    }
+
+    .sparkle.two {
+      right: 16%;
+      top: 22%;
+      transform: scale(0.78);
+    }
+
+    .sparkle::before {
+      width: 16px;
+      height: 4px;
+      left: 6px;
+      top: 12px;
+    }
+
+    .sparkle::after {
+      width: 4px;
+      height: 16px;
+      left: 12px;
+      top: 6px;
+    }
+
+    .celebrate {
+      min-height: 36px;
+      color: var(--princeton-orange);
+      font-size: 1.16rem;
+      font-weight: 1000;
+    }
+
+    .pulse {
+      animation: pulse 520ms ease;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.045) rotate(-1deg); }
+      100% { transform: scale(1); }
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 14px;
+      }
+
+      header,
+      .stage-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .start-button {
+        width: 100%;
+      }
+
+      .camera-shell,
+      canvas {
+        min-height: 54vh;
+      }
+
+      canvas {
+        width: calc(100% - 26px);
+        height: calc(100% - 26px);
+      }
+
+      .title-card::after {
+        opacity: 0.38;
+      }
+
+      .mascot {
+        opacity: 0.58;
+        transform: scale(0.82);
+      }
+    }
+  </style>
 </head>
 <body>
+  <main class="app">
+    <header>
+      <section class="title-card" aria-label="ToneSurfer Mandarin title">
+        <div class="top-nav" aria-label="Practice overview">
+          <span class="nav-pill"><span class="nav-icon home" aria-hidden="true"></span> Tone Studio</span>
+          <span class="nav-pill"><span class="nav-icon spark" aria-hidden="true"></span> Level 1</span>
+        </div>
+        <h1><span class="title-mark">ToneSurfer</span> Mandarin</h1>
+        <p class="subtitle">A playful beach game for practicing Mandarin tones</p>
+      </section>
+      <button id="startButton" class="start-button">Start Surf</button>
+    </header>
 
-    <div class="container">
-        <h1>ToneSurfer Mandarin 🌊</h1>
-        <p class="subtitle">Ride the magic wave with your finger to learn tones!</p>
+    <section class="stage-grid" aria-label="ToneSurfer Mandarin game">
+      <div class="camera-shell">
+        <video id="video" playsinline muted></video>
+        <canvas id="canvas" width="960" height="540"></canvas>
+        <div id="zoneOverlay" class="zone-overlay" aria-hidden="true">
+          <div class="zone zone-high"><span>Surf Up: High Tone</span></div>
+          <div class="zone zone-low"><span>Dive Down: Low Tone</span></div>
+        </div>
+        <div id="fingerDot" class="finger-dot" aria-hidden="true"></div>
+        <span class="sparkle one" aria-hidden="true"></span>
+        <span class="sparkle two" aria-hidden="true"></span>
+        <div class="mascot" aria-hidden="true"><span class="mascot-smile"></span></div>
+      </div>
 
-        <div class="game-layout">
-            <div class="video-viewport">
-                <video id="webcam" autoplay playsinline muted width="480" height="360"></video>
-                <canvas id="game-canvas" width="480" height="360"></canvas>
-            </div>
-
-            <div class="sidebar-panel">
-                <div id="prompt-card" class="card">
-                    <p id="level-indicator" class="card-label">Level 1 of 4</p>
-                    <p id="ui-char" class="chinese-char">-</p>
-                    <p id="ui-pinyin" class="pinyin">-</p>
-                    <p id="ui-meaning" class="meaning">-</p>
-                </div>
-
-                <div id="status-card" class="card">
-                    Waking up the camera magic... 🔌🎥
-                </div>
-            </div>
+      <aside class="status-panel">
+        <div id="toneCard" class="tone-card">
+          <p class="status-label">Beach Mission</p>
+          <p id="statusText" class="status-text neutral">Surf up for High Tone</p>
+          <div id="celebrateText" class="celebrate"></div>
         </div>
 
-        <div class="controls-row">
-            <select id="camera-selector">
-                <option value="">Looking for cameras...</option>
-            </select>
-            
-            <button id="start-btn" class="btn">Start Surfing! 🏄‍♂️</button>
-            <button id="next-btn" class="btn hidden">Next Level! 🎉</button>
+        <div class="level-panel" aria-label="Current level">
+          <div class="level-header">
+            <span id="levelName" class="level-name">Level 1</span>
+            <span id="levelProgress" class="level-progress">1 / 3</span>
+          </div>
+          <div class="word-card">
+            <span id="wordHanzi" class="hanzi">妈</span>
+            <span class="word-copy">
+              <span id="wordPinyin" class="pinyin">ma</span>
+              <span id="wordTone" class="word-tone">High tone: surf up</span>
+            </span>
+          </div>
+          <div id="pathSteps" class="path-steps" aria-label="Tone path"></div>
+          <div class="hold-meter" aria-label="Hold progress">
+            <div class="hold-meter-top">
+              <span id="holdLabel">Hold the right zone</span>
+              <span id="holdTime">0.42s</span>
+            </div>
+            <div class="hold-track">
+              <div id="holdFill" class="hold-fill"></div>
+            </div>
+          </div>
+          <div id="wordList" class="word-list" aria-label="Level words"></div>
+          <div class="level-actions">
+            <button id="playWordButton" class="audio-button" type="button">Play Word</button>
+            <button id="revealToneButton" class="reveal-button" type="button">Reveal Tone</button>
+          </div>
         </div>
-    </div>
 
-    <script>
-        const wordList = [
-            { char: "妈", pinyin: "mā", meaning: "Mother", tone: 1, baseFreq: 400 },
-            { char: "麻", pinyin: "má", meaning: "Hemp", tone: 2, baseFreq: 260 },
-            { char: "马", pinyin: "mǎ", meaning: "Horse", tone: 3, baseFreq: 350 },
-            { char: "骂", pinyin: "mà", meaning: "Scold", tone: 4, baseFreq: 400 }
-        ];
+        <div class="tone-chips" aria-label="Tone controls">
+          <div class="tone-chip"><span class="chip-icon high" aria-hidden="true"></span> High Tone</div>
+          <div class="tone-chip"><span class="chip-icon low" aria-hidden="true"></span> Low Tone</div>
+        </div>
 
-        let currentLevel = 0;
-        let yHistory = [];
-        let gameActive = false;
-        let tracingActive = false;
-        let countdownVal = 0;
-        let zoneHistory = [];
-        let currentStream = null;
+        <div class="readout">
+          <div class="meter">
+            Finger Spot
+            <strong id="yReadout">--</strong>
+          </div>
+          <div class="meter">
+            Pitch
+            <strong id="pitchReadout">330Hz</strong>
+          </div>
+        </div>
 
-        // Audio setup
-        let audioCtx = null;
-        let oscillator = null;
-        let gainNode = null;
-        let audioInitialized = false;
+        <p class="hint">Level 1 uses mā, nǐ, and hǎo. Round 2 loops with the tone hint hidden unless you reveal it.</p>
+      </aside>
+    </section>
+  </main>
 
-        const video = document.getElementById('webcam');
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        const selector = document.getElementById('camera-selector');
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const startButton = document.getElementById("startButton");
+    const statusText = document.getElementById("statusText");
+    const celebrateText = document.getElementById("celebrateText");
+    const zoneOverlay = document.getElementById("zoneOverlay");
+    const fingerDot = document.getElementById("fingerDot");
+    const yReadout = document.getElementById("yReadout");
+    const pitchReadout = document.getElementById("pitchReadout");
+    const toneCard = document.getElementById("toneCard");
+    const levelName = document.getElementById("levelName");
+    const levelProgress = document.getElementById("levelProgress");
+    const wordHanzi = document.getElementById("wordHanzi");
+    const wordPinyin = document.getElementById("wordPinyin");
+    const wordTone = document.getElementById("wordTone");
+    const pathSteps = document.getElementById("pathSteps");
+    const holdLabel = document.getElementById("holdLabel");
+    const holdTime = document.getElementById("holdTime");
+    const holdFill = document.getElementById("holdFill");
+    const wordList = document.getElementById("wordList");
+    const playWordButton = document.getElementById("playWordButton");
+    const revealToneButton = document.getElementById("revealToneButton");
 
-        const startBtn = document.getElementById('start-btn');
-        const nextBtn = document.getElementById('next-btn');
-        const uiChar = document.getElementById('ui-char');
-        const uiPinyin = document.getElementById('ui-pinyin');
-        const uiMeaning = document.getElementById('ui-meaning');
-        const levelIndicator = document.getElementById('level-indicator');
-        const statusCard = document.getElementById('status-card');
+    let detector = null;
+    let audioContext = null;
+    let oscillator = null;
+    let gainNode = null;
+    let running = false;
+    let currentLevelIndex = 0;
+    let currentWordIndex = 0;
+    let currentRound = 1;
+    let currentPathIndex = 0;
+    let matchStartedAt = 0;
+    let advancingWord = false;
+    let levelComplete = false;
+    let toneHintRevealed = true;
 
-        // Initial setup sequence
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(initialStream => {
-                initialStream.getTracks().forEach(track => track.stop());
-                discoverCameras();
-            })
-            .catch(err => {
-                statusCard.innerText = "❌ Uh oh! Camera blocked. Please turn it on in settings!";
-            });
+    const HOLD_DURATION_MS = 420;
 
-        function discoverCameras() {
-            navigator.mediaDevices.enumerateDevices()
-                .then(devices => {
-                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                    selector.innerHTML = ''; 
-                    
-                    if (videoDevices.length === 0) {
-                        statusCard.innerText = "No webcams found! Plug one in to surf.";
-                        return;
-                    }
+    const LEVELS = [
+      {
+        name: "Level 1",
+        mission: "First greetings",
+        words: [
+          {
+            pinyin: "mā",
+            plain: "ma",
+            hanzi: "妈",
+            toneNumber: 1,
+            toneLabel: "Tone 1: high-level",
+            path: ["high"],
+            prompt: "stay in the high zone"
+          },
+          {
+            pinyin: "nǐ",
+            plain: "ni",
+            hanzi: "你",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high"
+          },
+          {
+            pinyin: "hǎo",
+            plain: "hao",
+            hanzi: "好",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high"
+          }
+        ]
+      }
+    ];
 
-                    videoDevices.forEach((device, index) => {
-                        const option = document.createElement('option');
-                        option.value = device.deviceId;
-                        option.text = device.label || `Camera ${index + 1}`;
-                        selector.appendChild(option);
-                    });
+    const TONES = {
+      high: {
+        display: "High wave",
+        pitch: 440,
+        wave: "sawtooth",
+        className: "high",
+        celebration: "Beautiful lift"
+      },
+      low: {
+        display: "Low wave",
+        pitch: 220,
+        wave: "sine",
+        className: "low",
+        celebration: "Soft landing"
+      },
+      neutral: {
+        display: "Surf up for High Tone",
+        pitch: 330,
+        wave: "sine",
+        className: "neutral",
+        celebration: "Find your wave!"
+      }
+    };
 
-                    startCamera(videoDevices[0].deviceId);
-                });
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    function currentLevel() {
+      return LEVELS[currentLevelIndex];
+    }
+
+    function currentWord() {
+      return currentLevel().words[currentWordIndex];
+    }
+
+    function shouldHideToneHint() {
+      return currentRound > 1 && !toneHintRevealed;
+    }
+
+    function toneStepLabel(step) {
+      return step === "high" ? "High" : "Low";
+    }
+
+    function resetHoldMeter() {
+      holdFill.style.width = "0%";
+      holdTime.textContent = `${(HOLD_DURATION_MS / 1000).toFixed(2)}s`;
+      const word = currentWord();
+      const step = word?.path[currentPathIndex];
+      holdLabel.textContent = step
+        ? `Hold ${shouldHideToneHint() ? "this step" : toneStepLabel(step)}`
+        : "Word complete";
+    }
+
+    function updateHoldMeter(progress) {
+      const safeProgress = Math.max(0, Math.min(1, progress));
+      const remainingMs = Math.max(0, Math.ceil(HOLD_DURATION_MS * (1 - safeProgress)));
+      holdFill.style.width = `${Math.round(safeProgress * 100)}%`;
+      holdTime.textContent = safeProgress >= 1
+        ? "Done"
+        : `${(remainingMs / 1000).toFixed(2)}s`;
+    }
+
+    function renderToneHint(word) {
+      if (shouldHideToneHint()) {
+        wordTone.textContent = "Tone hidden. Listen and choose.";
+        wordTone.classList.add("tone-hidden");
+      } else {
+        wordTone.textContent = `${word.toneLabel}: ${word.prompt}`;
+        wordTone.classList.remove("tone-hidden");
+      }
+    }
+
+    function renderLevel() {
+      const level = currentLevel();
+      const word = currentWord();
+
+      levelName.textContent = `${level.name}: ${level.mission} - Round ${currentRound}`;
+      levelProgress.textContent = `${Math.min(currentWordIndex + 1, level.words.length)} / ${level.words.length}`;
+      wordHanzi.textContent = word.hanzi;
+      wordPinyin.textContent = word.pinyin;
+      renderToneHint(word);
+
+      pathSteps.innerHTML = "";
+      word.path.forEach((step, index) => {
+        const pathStep = document.createElement("span");
+        pathStep.className = "path-step";
+        if (index < currentPathIndex) pathStep.classList.add("done");
+        if (index === currentPathIndex && !advancingWord) pathStep.classList.add("active");
+        pathStep.textContent = shouldHideToneHint() ? `Step ${index + 1}` : toneStepLabel(step);
+        pathSteps.appendChild(pathStep);
+      });
+
+      wordList.innerHTML = "";
+      level.words.forEach((levelWord, index) => {
+        const marker = document.createElement("span");
+        marker.className = "word-dot";
+        if (index < currentWordIndex || levelComplete) marker.classList.add("done");
+        if (index === currentWordIndex && !levelComplete) marker.classList.add("active");
+        marker.textContent = levelWord.plain;
+        wordList.appendChild(marker);
+      });
+
+      revealToneButton.disabled = !shouldHideToneHint();
+      revealToneButton.textContent = shouldHideToneHint() ? "Reveal Tone" : "Tone Shown";
+      resetHoldMeter();
+    }
+
+    function speakCurrentWord() {
+      const word = currentWord();
+      if (!word || !("speechSynthesis" in window)) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word.hanzi);
+      utterance.lang = "zh-CN";
+      utterance.rate = 0.82;
+      utterance.pitch = word.toneNumber === 1 ? 1.14 : 0.96;
+      if (gainNode && audioContext) {
+        gainNode.gain.setTargetAtTime(0.01, audioContext.currentTime, 0.04);
+        utterance.onend = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+        utterance.onerror = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+      }
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function startLevel(index = 0, round = 1) {
+      currentLevelIndex = index;
+      currentWordIndex = 0;
+      currentRound = round;
+      currentPathIndex = 0;
+      matchStartedAt = 0;
+      advancingWord = false;
+      levelComplete = false;
+      toneHintRevealed = currentRound === 1;
+      renderLevel();
+      statusText.className = "status-text neutral";
+      setStatus(`Listen: ${currentWord().pinyin}`);
+    }
+
+    async function initAI() {
+      setStatus("Loading tracking model...");
+      await tf.ready();
+      await tf.setBackend('webgl');
+      
+      const model = handPoseDetection.SupportedModels.MediaPipeHands;
+      const detectorConfig = {
+        runtime: 'mediapipe',
+        solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4',
+        modelType: 'full',
+        maxHands: 1
+      };
+      detector = await handPoseDetection.createDetector(model, detectorConfig);
+      setStatus("Camera warming up...");
+    }
+
+    async function startCamera() {
+      const constraints = {
+        audio: false,
+        video: {
+          width: 960,
+          height: 540,
+          facingMode: "user"
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = stream;
+      return new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+          video.play();
+          resolve();
+        };
+      });
+    }
+
+    function initAudio() {
+      if (audioContext) return;
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      oscillator = audioContext.createOscillator();
+      gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(330, audioContext.currentTime);
+      gainNode.gain.setValueAtTime(0.0, audioContext.currentTime);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start();
+    }
+
+    function updateAudioSynth(frequency, type = "sine", active = true) {
+      if (!audioContext) return;
+      oscillator.type = type;
+      oscillator.frequency.setTargetAtTime(frequency, audioContext.currentTime, 0.04);
+      
+      const targetVolume = active ? 0.06 : 0.0;
+      gainNode.gain.setTargetAtTime(targetVolume, audioContext.currentTime, 0.05);
+      pitchReadout.textContent = `${Math.round(frequency)}Hz`;
+    }
+
+    function handleToneProgress(detectedZone) {
+      if (advancingWord || levelComplete) return;
+
+      const word = currentWord();
+      const expectedZone = word.path[currentPathIndex];
+
+      if (detectedZone === expectedZone) {
+        zoneOverlay.className = `zone-overlay ${detectedZone}`;
+        statusText.className = `status-text ${TONES[detectedZone].className}`;
+        setStatus(TONES[detectedZone].display);
+        updateAudioSynth(TONES[detectedZone].pitch, TONES[detectedZone].wave, true);
+
+        if (matchStartedAt === 0) {
+          matchStartedAt = performance.now();
         }
 
-        function startCamera(deviceId) {
-            if (currentStream) {
-                currentStream.getTracks().forEach(track => track.stop());
-            }
+        const elapsed = performance.now() - matchStartedAt;
+        updateHoldMeter(elapsed / HOLD_DURATION_MS);
 
-            const constraints = {
-                video: {
-                    deviceId: deviceId ? { exact: deviceId } : undefined,
-                    width: 480,
-                    height: 360
-                }
-            };
+        if (elapsed >= HOLD_DURATION_MS) {
+          celebrateText.textContent = TONES[detectedZone].celebration;
+          toneCard.classList.add("pulse");
+          setTimeout(() => toneCard.classList.remove("pulse"), 550);
 
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(stream => {
-                    currentStream = stream;
-                    video.srcObject = stream;
-                    statusCard.innerText = "Camera ready! Loading AI hand magic... 🤖✨";
-                    
-                    video.onloadeddata = () => {
-                        initML5();
-                    };
-                })
-                .catch(err => {
-                    statusCard.innerText = "Camera glitch: " + err.message;
-                });
+          currentPathIndex++;
+          matchStartedAt = 0;
+
+          if (currentPathIndex >= word.path.length) {
+            advanceWordSequence();
+          } else {
+            renderLevel();
+          }
         }
+      } else {
+        matchStartedAt = 0;
+        zoneOverlay.className = "zone-overlay";
+        statusText.className = "status-text neutral";
+        setStatus("Find the wave space!");
+        updateAudioSynth(330, "sine", false);
+        resetHoldMeter();
+      }
+    }
 
-        selector.addEventListener('change', (e) => {
-            if (e.target.value) startCamera(e.target.value);
-        });
+    function advanceWordSequence() {
+      advancingWord = true;
+      resetHoldMeter();
+      setStatus("Perfect curve hit!");
+      celebrateText.textContent = "✨ Level Point Explored! ✨";
+      speakCurrentWord();
 
-        function initML5() {
-            const handpose = ml5.handpose(video, () => {
-                statusCard.innerText = "AI is Ready! Pick a camera below and click 'Start Surfing'! 🌊";
-            });
+      setTimeout(() => {
+        advancingWord = false;
+        celebrateText.textContent = "";
+        const level = currentLevel();
 
-            handpose.on('hand', results => {
-                handleTracking(results);
-            });
-            
-            requestAnimationFrame(renderLoop);
+        if (currentWordIndex + 1 < level.words.length) {
+          currentWordIndex++;
+          currentPathIndex = 0;
+          renderLevel();
+          setStatus(`Next up: ${currentWord().pinyin}`);
+        } else {
+          handleLevelCompletion();
         }
+      }, 1400);
+    }
 
-        // KID-FRIENDLY HUD RENDERING ENGINE
-        function renderLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function handleLevelCompletion() {
+      levelComplete = true;
+      renderLevel();
+      updateAudioSynth(330, "sine", false);
 
-            if (gameActive) {
-                let currentTone = wordList[currentLevel].tone;
+      if (currentRound === 1) {
+        setStatus("Round 1 Clear! Advancing to Hidden Mode...");
+        setTimeout(() => {
+          startLevel(currentLevelIndex, 2);
+        }, 3000);
+      } else {
+        setStatus("Beach Game Mastery Complete! 🌊🏄‍♂️");
+        startButton.disabled = false;
+        startButton.textContent = "Surf Again";
+        running = false;
+      }
+    }
 
-                // Translucent guide container block
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-                ctx.fillRect(80, 60, 320, 240);
+    async function trackingLoop() {
+      if (!running) return;
 
-                // Draw the tone shape outline helper
-                ctx.strokeStyle = 'rgba(75, 163, 141, 0.85)';
-                ctx.lineWidth = 10;
-                ctx.lineCap = 'round';
-                ctx.lineJoin = 'round';
-                ctx.beginPath();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw the mirrored webcam image to the display canvas
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
 
-                if (currentTone === 1) {
-                    // Tone 1: Flat high
-                    ctx.moveTo(100, 120);
-                    ctx.lineTo(380, 120);
-                } else if (currentTone === 2) {
-                    // Tone 2: Rising
-                    ctx.moveTo(120, 260);
-                    ctx.lineTo(360, 100);
-                } else if (currentTone === 3) {
-                    // Tone 3: Dipping
-                    ctx.moveTo(100, 120);
-                    ctx.quadraticCurveTo(240, 340, 380, 140);
-                } else if (currentTone === 4) {
-                    // Tone 4: Falling
-                    ctx.moveTo(120, 100);
-                    ctx.lineTo(360, 260);
-                }
-                ctx.stroke();
+      try {
+        const hands = await detector.estimateHands(video, { flipHorizontal: false });
 
-                // Simple Zone separator label (Subtle middle marker line)
-                ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(0, canvas.height/2);
-                ctx.lineTo(canvas.width, canvas.height/2);
-                ctx.stroke();
-            }
+        if (hands && hands.length > 0) {
+          // Track the index finger tip (landmark index 8)
+          const indexTip = hands[0].keypoints[8];
+          
+          // CRITICAL MIRROR MATCH: Coordinates are normalized against the mirrored layout
+          const mirroredX = canvas.width - (indexTip.x * (canvas.width / video.videoWidth));
+          const calculatedY = indexTip.y * (canvas.height / video.videoHeight);
 
-            // Big, bold countdown overlay
-            if (countdownVal > 0) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                ctx.fillStyle = '#4ba38d';
-                ctx.font = 'bold 90px Fredoka, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(countdownVal, canvas.width / 2, canvas.height / 2);
-            }
+          // Update position layout nodes
+          fingerDot.classList.add("visible");
+          fingerDot.style.left = `${(mirroredX / canvas.width) * 100}%`;
+          fingerDot.style.top = `${(calculatedY / canvas.height) * 100}%`;
+          
+          yReadout.textContent = `${Math.round(canvas.height - calculatedY)}px`;
 
-            requestAnimationFrame(renderLoop);
+          // Split tracking sectors horizontally across center line
+          const currentZone = (calculatedY < canvas.height / 2) ? "high" : "low";
+          handleToneProgress(currentZone);
+        } else {
+          fingerDot.classList.remove("visible");
+          yReadout.textContent = "--";
+          handleToneProgress(null);
         }
+      } catch (err) {
+        console.error("Tracking process anomaly:", err);
+      }
 
-        function handleTracking(hands) {
-            if (hands.length > 0) {
-                let hand = hands[0];
-                let indexFinger = hand.landmarks[8];
-                let x = indexFinger[0];
-                let y = indexFinger[1];
-                
-                if (tracingActive) {
-                    yHistory.push(y);
-                }
+      requestAnimationFrame(trackingLoop);
+    }
 
-                // Draw a beautiful sparkly indicator tracking dot
-                ctx.save();
-                ctx.fillStyle = '#ff9b9b';
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 4;
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                ctx.shadowBlur = 10;
-                ctx.beginPath();
-                ctx.arc(canvas.width - x, y, 14, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.stroke();
-                ctx.restore();
+    startButton.addEventListener("click", async () => {
+      startButton.disabled = true;
+      startButton.textContent = "Surfing...";
+      initAudio();
 
-                // Interactive Audio Theremin 
-                let normalizedY = y / canvas.height;
-                let calculatedFreq = 466 - (normalizedY * (466 - 220)); 
-                setPitch(calculatedFreq);
-
-                let currentZone = (y < canvas.height / 2) ? "Top" : "Bottom";
-                if (zoneHistory.length === 0 || zoneHistory[zoneHistory.length - 1] !== currentZone) {
-                    zoneHistory.push(currentZone);
-                }
-            }
+      try {
+        if (!detector) {
+          await initAI();
         }
+        await startCamera();
+        
+        running = true;
+        startLevel(0, 1);
+        requestAnimationFrame(trackingLoop);
+      } catch (err) {
+        console.error("Initialization failure:", err);
+        setStatus("Hardware startup block: Check permissions.");
+        startButton.disabled = false;
+        startButton.textContent = "Start Surf";
+      }
+    });
 
-        function initAudio() {
-            if (audioInitialized) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            oscillator = audioCtx.createOscillator();
-            gainNode = audioCtx.createGain();
+    playWordButton.addEventListener("click", () => {
+      if (running) speakCurrentWord();
+    });
 
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(330, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            oscillator.start();
-            audioInitialized = true;
-        }
-
-        function setPitch(frequency) {
-            if (!audioInitialized) return;
-            oscillator.frequency.linearRampToValueAtTime(frequency, audioCtx.currentTime + 0.05);
-        }
-
-        function setVolume(val) {
-            if (!audioInitialized) return;
-            gainNode.gain.linearRampToValueAtTime(val, audioCtx.currentTime + 0.05);
-        }
-
-        function loadLevel(index) {
-            currentLevel = index;
-            zoneHistory = [];
-            yHistory = [];
-            
-            let word = wordList[currentLevel];
-
-            levelIndicator.innerText = `Word ${currentLevel + 1} of ${wordList.length}`;
-            uiChar.innerText = word.char;
-            uiPinyin.innerText = word.pinyin;
-            uiMeaning.innerText = word.meaning;
-            
-            nextBtn.classList.add('hidden');
-            statusCard.style.backgroundColor = "#ffffff";
-            
-            playPromptCue(word.baseFreq, word.tone);
-        }
-
-        function playPromptCue(base, tone) {
-            initAudio();
-            setVolume(0.2);
-
-            let now = audioCtx.currentTime;
-            oscillator.frequency.cancelScheduledValues(now);
-
-            if (tone === 1) { 
-                oscillator.frequency.setValueAtTime(base, now);
-                oscillator.frequency.setValueAtTime(base, now + 0.6);
-            } else if (tone === 2) { 
-                oscillator.frequency.setValueAtTime(base - 50, now);
-                oscillator.frequency.exponentialRampToValueAtTime(base + 80, now + 0.6);
-            } else if (tone === 3) { 
-                oscillator.frequency.setValueAtTime(base, now);
-                oscillator.frequency.exponentialRampToValueAtTime(base - 80, now + 0.25);
-                oscillator.frequency.exponentialRampToValueAtTime(base + 60, now + 0.6);
-            } else if (tone === 4) { 
-                oscillator.frequency.setValueAtTime(base + 100, now);
-                oscillator.frequency.exponentialRampToValueAtTime(base - 100, now + 0.5);
-            }
-
-            gainNode.gain.setValueAtTime(0.2, now + 0.5);
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-            
-            setTimeout(() => {
-                statusCard.innerText = "Listen closely... 👂 Now get ready!";
-                runTimerSequence(3);
-            }, 900);
-        }
-
-        function runTimerSequence(seconds) {
-            countdownVal = seconds;
-            let timer = setInterval(() => {
-                countdownVal--;
-                if (countdownVal <= 0) {
-                    clearInterval(timer);
-                    startTracingWindow();
-                }
-            }, 1000);
-        }
-
-        function startTracingWindow() {
-            tracingActive = true;
-            setVolume(0.2); 
-            statusCard.innerText = "SURF THE WAVE! 🏄‍♂️✨ Trace the green line!";
-            statusCard.style.backgroundColor = "var(--accent-yellow)"; 
-
-            setTimeout(() => {
-                evaluateTracedResult();
-            }, 2500);
-        }
-
-        function evaluateTracedResult() {
-            tracingActive = false;
-            setVolume(0); 
-
-            let targetTone = wordList[currentLevel].tone;
-            let detectedTone = 0;
-            let pattern = zoneHistory.join("->");
-
-            const FLAT_THRESHOLD = canvas.height * 0.20; 
-            let isFlat = false;
-            if (yHistory.length > 0) {
-                const minY = Math.min(...yHistory);
-                const maxY = Math.max(...yHistory);
-                isFlat = (maxY - minY) < FLAT_THRESHOLD;
-            }
-
-            if (isFlat) {
-                detectedTone = 1;
-            } else if (pattern === "Bottom->Top") {
-                detectedTone = 2;
-            } else if (pattern === "Top->Bottom->Top") {
-                detectedTone = 3;
-            } else if (pattern === "Top->Bottom") {
-                detectedTone = 4;
-            }
-
-            if (detectedTone === targetTone) {
-                statusCard.innerText = "🌟 AWESOME! Perfect Wave! 🌟";
-                statusCard.style.backgroundColor = "var(--success-color)"; 
-                nextBtn.classList.remove('hidden');
-            } else {
-                statusCard.innerText = "Close! Let's try riding that wave again! 🌊";
-                statusCard.style.backgroundColor = "var(--fail-color)"; 
-                setTimeout(() => loadLevel(currentLevel), 2800); 
-            }
-        }
-
-        startBtn.addEventListener('click', () => {
-            gameActive = true;
-            startBtn.classList.add('hidden');
-            loadLevel(0);
-        });
-
-        nextBtn.addEventListener('click', () => {
-            let nextIndex = (currentLevel + 1) % wordList.length;
-            loadLevel(nextIndex);
-        });
-
-        // Debug triggers kept silent for smooth continuous play
-        window.addEventListener('keydown', (e) => {
-            if (!gameActive || !tracingActive) return;
-            let key = e.key;
-            if (key === '1') { zoneHistory = ["Top"]; evaluateTracedResult(); }
-            if (key === '2') { zoneHistory = ["Bottom", "Top"]; evaluateTracedResult(); }
-            if (key === '3') { zoneHistory = ["Top", "Bottom", "Top"]; evaluateTracedResult(); }
-            if (key === '4') { zoneHistory = ["Top", "Bottom"]; evaluateTracedResult(); }
-        });
-    </script>
+    revealToneButton.addEventListener("click", () => {
+      if (running && shouldHideToneHint()) {
+        toneHintRevealed = true;
+        renderLevel();
+      }
+    });
+  </script>
 </body>
 </html>
