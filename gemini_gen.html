@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToneSurfer Mandarin 🌊</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Noto+Serif+SC:wght@700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://unpkg.com/ml5@1.2.0/dist/ml5.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f7f9f6; 
+            --primary-color: #6ebca7; 
+            --accent-pink: #ffb4b4; 
+            --accent-yellow: #ffe699;
+            --text-dark: #334e43; 
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .container {
+            max-width: 750px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.6rem;
+            color: var(--primary-color);
+            margin: 0 0 5px 0;
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            margin: 0 0 15px 0;
+            opacity: 0.8;
+        }
+
+        /* Target Core Game Interface Layout */
+        .game-layout {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 480px;
+            height: 360px;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(51, 78, 67, 0.08);
+            border: 6px solid white;
+            background: #e2ede8;
+        }
+
+        /* Sidebar UI Card Interface */
+        .sidebar-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 240px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.02);
+            border: 2px solid #eef3f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #prompt-card {
+            min-height: 180px;
+        }
+
+        .chinese-char {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 4.5rem;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .pinyin {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.4rem;
+            margin: 2px 0;
+            color: var(--primary-color);
+        }
+
+        .meaning {
+            font-size: 0.95rem;
+            margin: 0;
+            opacity: 0.7;
+        }
+
+        #status-card {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.2rem;
+            min-height: 60px;
+            text-align: center;
+        }
+
+        .btn {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.3rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 0px #539d89;
+            transition: all 0.1s ease;
+        }
+
+        .btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0px #539d89;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .cheat-indicator {
+            font-size: 0.8rem;
+            opacity: 0.4;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ToneSurfer Mandarin 🌊</h1>
+        <p class="subtitle">Trace the pitch wave in the air to master tones!</p>
+
+        <div class="game-layout">
+            <div id="canvas-container"></div>
+
+            <div class="sidebar-panel">
+                <div id="prompt-card" class="card">
+                    <p style="margin:0; font-size:0.85rem; font-weight:bold; opacity:0.5; text-transform:uppercase;">Target Word</p>
+                    <p id="ui-char" class="chinese-char">-</p>
+                    <p id="ui-pinyin" class="pinyin">-</p>
+                    <p id="ui-meaning" class="meaning">-</p>
+                </div>
+
+                <div id="status-card" class="card">
+                    Click start to load AI tracker! 🚀
+                </div>
+            </div>
+        </div>
+
+        <button id="start-btn" class="btn">Start Game 🚀</button>
+        <button id="next-btn" class="btn hidden">Next Level ➡️</button>
+
+        <div class="cheat-indicator">
+            Presentation Fallbacks: Keys <strong>1, 2, 3, 4</strong> simulate instant execution wins for judges.
+        </div>
+    </div>
+
+    <script>
+        // --- WORD DATABASE MATRIX ---
+        const wordList = [
+            { char: "妈", pinyin: "mā", meaning: "Mother", tone: 1, baseFreq: 400 },
+            { char: "麻", pinyin: "má", meaning: "Hemp/Numb", tone: 2, baseFreq: 260 },
+            { char: "马", pinyin: "mǎ", meaning: "Horse", tone: 3, baseFreq: 350 },
+            { char: "骂", pinyin: "mà", meaning: "Scold", tone: 4, baseFreq: 400 }
+        ];
+
+        let currentLevel = 0;
+
+        // --- GAME ENGINE STATE FLAGS ---
+        let video;
+        let handpose;
+        let hands = [];
+        let gameActive = false;
+        let tracingActive = false;
+        let countdownTime = 0;
+        let zoneHistory = []; // Tracks sequence layout transitions inside target frames
+
+        // Audio synthesizer references
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+        let audioInitialized = false;
+
+        // DOM Element pointers
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const uiChar = document.getElementById('ui-char');
+        const uiPinyin = document.getElementById('ui-pinyin');
+        const uiMeaning = document.getElementById('ui-meaning');
+        const statusCard = document.getElementById('status-card');
+
+        // --- p5.js FRAMEWORK CORE SETUP ---
+        function setup() {
+            // Smaller size layout optimized cleanly for standard multi-panel projection spaces
+            let cnv = createCanvas(480, 360);
+            cnv.parent('canvas-container');
+            background('#e2ede8');
+
+            // Capture raw web camera input vector array parameters natively
+            video = createCapture(VIDEO);
+            video.size(480, 360);
+            video.hide(); 
+
+            // Mount handpose framework analyzer loop dynamically
+            handpose = ml5.handpose(video, () => {
+                statusCard.innerText = "AI Tracking Ready! Click Start Game to begin 🏄‍♂️";
+            });
+
+            handpose.on('hand', (results) => {
+                hands = results;
+            });
+        }
+
+        // --- MAIN RENDER EXECUTION LOOP (Runs 60fps) ---
+        function draw() {
+            if (!gameActive) {
+                background('#e2ede8');
+                return;
+            }
+
+            // MIRROR CANVAS VIEWPORT HORIZONTALLY
+            translate(width, 0);
+            scale(-1, 1);
+            image(video, 0, 0, width, height);
+            
+            // Revert state matrices back to prevent text/line formatting inversions
+            scale(-1, 1);
+            translate(-width, 0);
+
+            // DRAW CUTTING-EDGE 2-ZONE HORIZONTAL CUTTING GRID MARKS (50% Split)
+            stroke('rgba(110, 188, 167, 0.4)');
+            strokeWeight(4);
+            drawingContext.setLineDash([8, 8]);
+            line(0, height / 2, width, height / 2); // Split down the exact middle (180px)
+            drawingContext.setLineDash([]); 
+
+            // Zone HUD Typography Layout Info overlay
+            noStroke();
+            fill('rgba(51, 78, 67, 0.3)');
+            textSize(12);
+            text("TOP ZONE (HIGH PITCH)", 15, 25);
+            text("BOTTOM ZONE (LOW PITCH)", 15, height - 15);
+
+            // ACTIVE REALTIME HAND DATA INTERPOLATION ENGINE
+            if (hands.length > 0 && tracingActive) {
+                let hand = hands[0];
+                let indexFinger = hand.landmarks[8]; // Fetch coordinate object array
+                let x = indexFinger[0];
+                let y = indexFinger[1];
+
+                // Synchronize raw analytical space coordinates back to mirrored UI boundaries
+                let mirroredX = width - x;
+
+                // Draw whimsical indicator marker center frame tracking dot
+                fill('#ff7b7b');
+                stroke('#ffffff');
+                strokeWeight(3);
+                ellipse(mirroredX, y, 22, 22);
+
+                // --- OPTION B: DYNAMIC CONTINUOUS SYNTHESIZER FREQUENCY GLIDE ---
+                // Map the exact height coordinates gracefully into a clean linear frequency range
+                let normalizedY = y / height; // Returns floating value bounded between 0.0 and 1.0
+                // 0.0 (top edge) = 466Hz, 1.0 (bottom edge) = 220Hz
+                let calculatedFreq = lerp(466, 220, normalizedY);
+                setPitch(calculatedFreq);
+
+                // --- INDEPENDENT GAME EVALUATOR STATE APPARATUS MATRIX ---
+                // Silently observe and record pattern tracking history logs based on zone boxes
+                let currentZone = (y < height / 2) ? "Top" : "Bottom";
+                
+                // Track transitions exclusively to prevent flooding arrays with repeating strings
+                if (zoneHistory.length === 0 || zoneHistory[zoneHistory.length - 1] !== currentZone) {
+                    zoneHistory.push(currentZone);
+                }
+            }
+
+            // COUNTDOWN TIMER DISPLAY INTERFACES
+            if (countdownTime > 0) {
+                noStroke();
+                fill('rgba(255, 255, 255, 0.85)');
+                rect(0, 0, width, height);
+                
+                fill('#6ebca7');
+                textSize(50);
+                textAlign(CENTER, CENTER);
+                text(Math.ceil(countdownTime / 60), width / 2, height / 2);
+                countdownTime--;
+
+                if (countdownTime === 0) {
+                    startTracingWindow();
+                }
+            }
+        }
+
+        // --- WEB AUDIO SYNTH MATRIX SETUP ---
+        function initAudio() {
+            if (audioInitialized) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(330, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime); // Silent initially
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            audioInitialized = true;
+        }
+
+        function setPitch(frequency) {
+            if (!audioInitialized) return;
+            oscillator.frequency.linearRampToValueAtTime(frequency, audioCtx.currentTime + 0.05);
+        }
+
+        function setVolume(volumeValue) {
+            if (!audioInitialized) return;
+            gainNode.gain.linearRampToValueAtTime(volumeValue, audioCtx.currentTime + 0.05);
+        }
+
+        // --- PRIMARY APPLICATION LOOP MANAGEMENT ---
+        function loadLevel(index) {
+            currentLevel = index;
+            let word = wordList[currentLevel];
+
+            // Render text components instantly
+            uiChar.innerText = word.char;
+            uiPinyin.innerText = word.pinyin;
+            uiMeaning.innerText = `meaning: ${word.meaning}`;
+            
+            nextBtn.classList.add('hidden');
+            zoneHistory = [];
+            
+            // Trigger target initialization spoken prompt reference audio cue emulation
+            playPromptCue(word.baseFreq, word.tone);
+        }
+
+        // Emulates native pronounciation contours musically using oscillator frequencies
+        function playPromptCue(base, tone) {
+            initAudio();
+            setVolume(0.15);
+
+            let now = audioCtx.currentTime;
+            oscillator.frequency.cancelScheduledValues(now);
+
+            if (tone === 1) { // High Flat
+                oscillator.frequency.setValueAtTime(base, now);
+                oscillator.frequency.setValueAtTime(base, now + 0.6);
+            } else if (tone === 2) { // Rising
+                oscillator.frequency.setValueAtTime(base - 50, now);
+                oscillator.frequency.exponentialRampToValueAtTime(base + 80, now + 0.6);
+            } else if (tone === 3) { // Dipping
+                oscillator.frequency.setValueAtTime(base, now);
+                oscillator.frequency.exponentialRampToValueAtTime(base - 80, now + 0.25);
+                oscillator.frequency.exponentialRampToValueAtTime(base + 60, now + 0.6);
+            } else if (tone === 4) { // Falling
+                oscillator.frequency.setValueAtTime(base + 100, now);
+                oscillator.frequency.exponentialRampToValueAtTime(base - 100, now + 0.5);
+            }
+
+            // Fade volume smoothly down at completion of demonstration sample
+            gainNode.gain.setValueAtTime(0.15, now + 0.5);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+            
+            // Queue countdown routine triggers directly behind sample play execution window
+            setTimeout(() => {
+                statusCard.innerText = "Get Ready to Trace... 🧘‍♂️";
+                countdownTime = 120; // 2 Seconds relative scale to 60fps frame refresh execution
+            }, 900);
+        }
+
+        function startTracingWindow() {
+            tracingActive = true;
+            setVolume(0.15); // Turn active tracing audio synth up
+            statusCard.innerText = "SURF NOW! Draw the wave track! 🏄‍♂️✨";
+            statusCard.style.backgroundColor = "#ffe699"; // Whimsical yellow active panel frame colors
+
+            // Close the tracing window and evaluate results after 2.5 seconds
+            setTimeout(() => {
+                evaluateTracedResult();
+            }, 2500);
+        }
+
+        // --- ALGORITHMIC PATTERN GRADING EVALUATOR ENGINE ---
+        function evaluateTracedResult() {
+            tracingActive = false;
+            setVolume(0); // Kill theremin audio feedback stream
+            statusCard.style.backgroundColor = "#ffffff";
+
+            let targetTone = wordList[currentLevel].tone;
+            let detectedTone = 0;
+
+            // Clean data tracking check mappings array definitions
+            let pattern = zoneHistory.join("->");
+
+            // Evaluate tracking sequence log maps string patterns cleanly against zone rules
+            if (pattern === "Top") {
+                detectedTone = 1;
+            } else if (pattern === "Bottom->Top") {
+                detectedTone = 2;
+            } else if (pattern === "Top->Bottom->Top") {
+                detectedTone = 3;
+            } else if (pattern === "Top->Bottom") {
+                detectedTone = 4;
+            }
+
+            // Validate evaluation outcomes
+            if (detectedTone === targetTone) {
+                statusCard.innerText = "🌟 PERFECT TONE! Excellent Curve! 🌟";
+                statusCard.style.backgroundColor = "#eefbeb"; // Sweet pastel mint success states
+                nextBtn.classList.remove('hidden');
+            } else {
+                statusCard.innerText = "❌ Curve didn't match. Let's try that level again! 🌊";
+                statusCard.style.backgroundColor = "#ffebeb"; // Soft pink fail alerts
+                setTimeout(() => loadLevel(currentLevel), 2500); // Reset retry sequence loops
+            }
+        }
+
+        // Action binding triggers
+        startBtn.addEventListener('click', () => {
+            gameActive = true;
+            startBtn.classList.add('hidden');
+            loadLevel(0);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            let nextIndex = (currentLevel + 1) % wordList.length;
+            loadLevel(nextIndex);
+        });
+
+        // --- 100% BULLETPROOF PRESENTATION OVERRIDE SHORTCUT CHEAT KEYS ---
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive || !tracingActive) return;
+            let key = e.key;
+
+            // Direct mapping key bindings to simulate automated execution loop successes instantly
+            if (key === '1') { zoneHistory = ["Top"]; evaluateTracedResult(); }
+            if (key === '2') { zoneHistory = ["Bottom", "Top"]; evaluateTracedResult(); }
+            if (key === '3') { zoneHistory = ["Top", "Bottom", "Top"]; evaluateTracedResult(); }
+            if (key === '4') { zoneHistory = ["Top", "Bottom"]; evaluateTracedResult(); }
+        });
+    </script>
+</body>
+</html>
