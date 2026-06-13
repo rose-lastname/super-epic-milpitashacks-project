@@ -2,87 +2,161 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Webcam Debugging Portal 🎥</title>
+    <title>Hardware Selector Portal 🎥</title>
     <style>
         body {
-            background-color: #222;
-            color: #fff;
-            font-family: sans-serif;
+            background-color: #1a1c1b;
+            color: #f7f9f6;
+            font-family: system-ui, -apple-system, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
             margin: 0;
+            padding: 20px;
         }
-        #box {
+        .window-box {
             width: 480px;
             height: 360px;
             border: 4px solid #6ebca7;
             background-color: #000;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
-            transform: scaleX(-1); /* Mirrors the stream natively */
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
         video {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        #log {
+        .controls {
             margin-top: 20px;
             width: 480px;
-            background: #333;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid #6ebca7;
+            background: #2b2d2c;
+            color: white;
+            font-size: 14px;
+        }
+        #log-panel {
+            width: 450px;
+            background: #252726;
             padding: 15px;
             border-radius: 8px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 13px;
             border-left: 5px solid #ffb4b4;
         }
     </style>
 </head>
 <body>
 
-    <h2>Camera Connection Diagnostic Tool</h2>
+    <h2>Webcam Hardware Router</h2>
+    <p style="margin-top:0; opacity:0.7;">Select your specific built-in camera from the routing engine below.</p>
     
-    <div id="box">
-        <video id="test-webcam" autoplay playsinline muted></video>
+    <div class="window-box">
+        <video id="hardware-stream" autoplay playsinline muted></video>
     </div>
 
-    <div id="log">Status: Initializing connection test...</div>
+    <div class="controls">
+        <select id="camera-selector">
+            <option value="">Searching for connected camera hardware...</option>
+        </select>
+        
+        <div id="log-panel">Status: Awaiting engine verification...</div>
+    </div>
 
     <script>
-        const video = document.getElementById('test-webcam');
-        const log = document.getElementById('log');
+        const videoElement = document.getElementById('hardware-stream');
+        const selector = document.getElementById('camera-selector');
+        const logPanel = document.getElementById('log-panel');
+        let currentStream = null;
 
-        function updateLog(msg, isError = false) {
-            log.innerText = "Status: " + msg;
-            log.style.borderLeftColor = isError ? "#ff7b7b" : "#6ebca7";
+        function printLog(text, color = "#6ebca7") {
+            logPanel.innerText = "Status: " + text;
+            logPanel.style.borderLeftColor = color;
         }
 
-        // Standard web browser request loop
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ 
-                video: { width: 480, height: 360 } 
-            })
-            .then(function(stream) {
-                updateLog("Hardware connected! Streaming live frames straight to player...");
-                video.srcObject = stream;
-                
-                // Extra security handshake override for local files
-                video.onloadedmetadata = function() {
-                    video.play().catch(function(e) {
-                        updateLog("Browser blocked auto-play policy: " + e.message, true);
+        // 1. Enumerate and discover all available visual hardware items on the PC
+        function discoverCameras() {
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                    selector.innerHTML = ''; // Clear temporary loading messaging
+                    
+                    if (videoDevices.length === 0) {
+                        printLog("No physical video devices found on this system.", "#ff7b7b");
+                        return;
+                    }
+
+                    // Populate select options array dropdown box elements
+                    videoDevices.forEach((device, index) => {
+                        const option = document.createElement('option');
+                        option.value = device.deviceId;
+                        option.text = device.label || `Camera Hardware Device ${index + 1}`;
+                        selector.appendChild(option);
                     });
-                };
-            })
-            .catch(function(error) {
-                console.error(error);
-                updateLog("Hardware connection failed. Error Name: " + error.name + " | Message: " + error.message, true);
-            });
-        } else {
-            updateLog("Your browser version does not support camera API requests.", true);
+
+                    // Auto-boot the first discovered item on the stack list
+                    startCamera(videoDevices[0].deviceId);
+                })
+                .catch(err => {
+                    printLog("Discovery enumeration failure: " + err.message, "#ff7b7b");
+                });
         }
+
+        // 2. Direct Explicit Media Stream routing function
+        function startCamera(deviceId) {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+
+            const constraints = {
+                video: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                    width: 480,
+                    height: 360
+                }
+            };
+
+            printLog("Routing access vectors straight to hardware channel...");
+
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    currentStream = stream;
+                    videoElement.srcObject = stream;
+                    printLog("Channel linked! If the box is still black, change the selector dropdown option above.");
+                })
+                .catch(err => {
+                    printLog("Stream route initialization rejected: " + err.message, "#ff7b7b");
+                });
+        }
+
+        // Listen for user select hardware dropdown changes
+        selector.addEventListener('change', (e) => {
+            if (e.target.value) {
+                startCamera(e.target.value);
+            }
+        });
+
+        // Prompt initial permission sequence handshake routines to read device label tags
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(initialStream => {
+                // Instantly free the test lock so device management processes can re-route it
+                initialStream.getTracks().forEach(track => track.stop());
+                discoverCameras();
+            })
+            .catch(err => {
+                printLog("Initial browser hardware authorization handshake failed: " + err.message, "#ff7b7b");
+            });
     </script>
 </body>
 </html>
