@@ -1001,9 +1001,9 @@
 
     .brand-logo {
       display: block;
-      width: min(620px, 100%);
+      width: min(430px, 100%);
       height: auto;
-      margin: -8px 0 -10px;
+      margin: -16px 0 -18px;
       filter: drop-shadow(0 10px 0 rgba(0, 0, 0, 0.16));
       position: relative;
       z-index: 1;
@@ -1052,8 +1052,8 @@
     }
 
     .title-card {
-      min-height: 210px;
-      padding: 20px 24px 18px;
+      min-height: 142px;
+      padding: 14px 18px 12px;
       background:
         linear-gradient(105deg, rgba(255, 232, 181, 0.9), rgba(219, 229, 245, 0.86)),
         #f7f2e8;
@@ -1182,9 +1182,245 @@
       box-shadow: 5px 5px 0 #050505;
     }
 
+    body {
+      padding: 12px;
+    }
+
+    .app {
+      gap: 10px;
+      width: min(1220px, 100%);
+    }
+
+    header {
+      gap: 10px;
+      grid-template-columns: minmax(0, 1fr) 170px;
+    }
+
+    .top-nav {
+      gap: 6px;
+    }
+
+    .nav-pill,
+    .tone-chip {
+      min-height: 30px;
+      padding: 6px 9px;
+      font-size: 0.78rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+    }
+
+    .start-button {
+      min-height: 96px;
+      min-width: 0;
+      padding: 0 14px;
+    }
+
+    .stage-grid {
+      gap: 10px;
+      grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    }
+
+    .camera-shell {
+      height: min(58vh, 470px);
+      min-height: 360px;
+    }
+
+    canvas {
+      height: calc(100% - 24px);
+      min-height: 0;
+      width: calc(100% - 24px);
+    }
+
+    .status-panel {
+      gap: 8px;
+    }
+
+    .tone-card {
+      min-height: 118px;
+      padding: 14px;
+      gap: 6px;
+    }
+
+    .status-text {
+      font-size: clamp(1.45rem, 3vw, 2.25rem);
+    }
+
+    .celebrate {
+      min-height: 24px;
+      font-size: 0.98rem;
+    }
+
+    .level-panel {
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .word-card {
+      gap: 9px;
+      padding: 9px;
+    }
+
+    .hanzi {
+      height: 52px;
+      width: 52px;
+      font-size: 1.8rem;
+    }
+
+    .pinyin {
+      font-size: 1.35rem;
+    }
+
+    .word-tone {
+      font-size: 0.8rem;
+    }
+
+    .meaning-card {
+      grid-template-columns: 96px minmax(0, 1fr);
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .meaning-photo {
+      height: 72px;
+      width: 96px;
+    }
+
+    .meaning-sentence {
+      font-size: clamp(1rem, 2.5vw, 1.45rem);
+    }
+
+    .meaning-text {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+    }
+
+    .hold-meter {
+      gap: 5px;
+      padding: 8px;
+    }
+
+    .hold-track {
+      height: 10px;
+    }
+
+    .audio-button,
+    .reveal-button {
+      min-height: 38px;
+      padding: 8px 10px;
+    }
+
+    .tone-chip {
+      min-height: 40px;
+    }
+
+    .meter {
+      min-height: 60px;
+      padding: 10px;
+    }
+
+    .meter strong {
+      font-size: 1.15rem;
+    }
+
+    .hint {
+      font-size: 0.86rem;
+      line-height: 1.25;
+      padding: 10px;
+    }
+
     @media (max-width: 900px) {
+      .brand-logo {
+        width: min(340px, 100%);
+        margin: -18px 0 -22px;
+      }
+
+      .title-card {
+        min-height: 118px;
+        padding: 10px 14px;
+      }
+
+      header {
+        grid-template-columns: minmax(0, 1fr) 138px;
+      }
+
+      .start-button {
+        min-height: 78px;
+        font-size: 0.96rem;
+      }
+
+      .start-button::before {
+        height: 24px;
+        width: 24px;
+      }
+
+      .stage-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(245px, 0.75fr);
+      }
+
+      .camera-shell {
+        height: min(45vh, 330px);
+        min-height: 286px;
+      }
+
+      .tone-card {
+        min-height: 94px;
+        padding: 10px;
+      }
+
+      .status-label {
+        font-size: 0.78rem;
+      }
+
+      .status-text {
+        font-size: clamp(1.2rem, 2.6vw, 1.7rem);
+      }
+
+      .celebrate {
+        font-size: 0.86rem;
+        min-height: 18px;
+      }
+
+      .tone-chips,
+      .readout,
+      .hint {
+        display: none;
+      }
+
+      .level-name,
+      .level-progress,
+      .word-dot,
+      .path-step {
+        font-size: 0.72rem;
+        padding: 5px 7px;
+      }
+
+      .word-card {
+        padding: 7px;
+      }
+
+      .hanzi {
+        height: 42px;
+        width: 42px;
+        font-size: 1.42rem;
+      }
+
+      .pinyin {
+        font-size: 1.1rem;
+      }
+
+      .word-tone {
+        font-size: 0.72rem;
+      }
+
+      .hold-meter {
+        padding: 6px;
+      }
+    }
+
+    @media (max-width: 620px) {
       body {
-        padding: 14px;
+        padding: 10px;
       }
 
       header,
