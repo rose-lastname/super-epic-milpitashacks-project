@@ -1040,7 +1040,7 @@
       <section class="title-card" aria-label="ToneSurfer Mandarin title">
         <div class="top-nav" aria-label="Practice overview">
           <span class="nav-pill"><span class="nav-icon home" aria-hidden="true"></span> Tone Studio</span>
-          <span class="nav-pill"><span class="nav-icon spark" aria-hidden="true"></span> Level 1</span>
+          <span class="nav-pill"><span class="nav-icon spark" aria-hidden="true"></span><span id="levelBadge">Level 1 / 3</span></span>
         </div>
         <h1><span class="title-mark">ToneSurfer</span> Mandarin</h1>
         <p class="subtitle">A playful beach game for practicing Mandarin tones</p>
@@ -1122,7 +1122,7 @@
           </div>
         </div>
 
-        <p class="hint">Level 1 uses mā, nǐ, and hǎo. Round 2 loops with the tone hint hidden unless you reveal it.</p>
+        <p class="hint">Each level introduces new words. After Level 3, the game loops with tone hints hidden unless you reveal them.</p>
       </aside>
     </section>
   </main>
@@ -1153,6 +1153,7 @@
     const pitchReadout = document.getElementById("pitchReadout");
     const toneCard = document.getElementById("toneCard");
     const levelName = document.getElementById("levelName");
+    const levelBadge = document.getElementById("levelBadge");
     const levelProgress = document.getElementById("levelProgress");
     const wordHanzi = document.getElementById("wordHanzi");
     const wordPinyin = document.getElementById("wordPinyin");
@@ -1235,13 +1236,87 @@
       },
       {
         name: "Level 2",
-        mission: "Coming soon",
-        words: []
+        mission: "Family and animals",
+        words: [
+          {
+            pinyin: "bà",
+            plain: "ba",
+            hanzi: "爸",
+            toneNumber: 4,
+            toneLabel: "Tone 4: falling",
+            path: ["high", "low"],
+            prompt: "high, low",
+            english: "dad",
+            imageAlt: "A father holding a child",
+            imageUrl: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "gǒu",
+            plain: "gou",
+            hanzi: "狗",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high",
+            english: "dog",
+            imageAlt: "A dog looking at the camera",
+            imageUrl: "https://images.unsplash.com/photo-1552053831-71594a27632d?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "māo",
+            plain: "mao",
+            hanzi: "猫",
+            toneNumber: 1,
+            toneLabel: "Tone 1: high-level",
+            path: ["high"],
+            prompt: "stay in the high zone",
+            english: "cat",
+            imageAlt: "A cat sitting indoors",
+            imageUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80"
+          }
+        ]
       },
       {
         name: "Level 3",
-        mission: "Coming soon",
-        words: []
+        mission: "Useful everyday words",
+        words: [
+          {
+            pinyin: "shuǐ",
+            plain: "shui",
+            hanzi: "水",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high",
+            english: "water",
+            imageAlt: "Clear water in a glass",
+            imageUrl: "https://images.unsplash.com/photo-1548839140-29a749e1cf4d?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "rén",
+            plain: "ren",
+            hanzi: "人",
+            toneNumber: 2,
+            toneLabel: "Tone 2: rising",
+            path: ["low", "high"],
+            prompt: "low, high",
+            english: "person",
+            imageAlt: "A person smiling outdoors",
+            imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=900&q=80"
+          },
+          {
+            pinyin: "ài",
+            plain: "ai",
+            hanzi: "爱",
+            toneNumber: 4,
+            toneLabel: "Tone 4: falling",
+            path: ["high", "low"],
+            prompt: "high, low",
+            english: "love",
+            imageAlt: "Hands forming a heart shape",
+            imageUrl: "https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=900&q=80"
+          }
+        ]
       }
     ];
 
@@ -1287,6 +1362,10 @@
 
     function toneStepLabel(step) {
       return step === "high" ? "High" : "Low";
+    }
+
+    function levelBadgeText() {
+      return `${currentLevel().name} / ${LEVELS.length}`;
     }
 
     function resetHoldMeter() {
@@ -1348,6 +1427,7 @@
       const level = currentLevel();
       const word = currentWord();
 
+      levelBadge.textContent = levelBadgeText();
       levelName.textContent = `${level.name}: ${level.mission} - Round ${currentRound}`;
       levelProgress.textContent = `${Math.min(currentWordIndex + 1, level.words.length)} / ${level.words.length}`;
       wordHanzi.textContent = word.hanzi;
@@ -1416,9 +1496,11 @@
       speakCurrentWord();
     }
 
-    function showLevelCelebration(round) {
-      celebrationTitle.textContent = `Round ${round} Complete`;
-      celebrationMessage.textContent = "Dancing animals unlocked the next surf loop.";
+    function showLevelCelebration(level, nextLevel, nextRound) {
+      celebrationTitle.textContent = `${level.name} Complete`;
+      celebrationMessage.textContent = nextLevel
+        ? `${nextLevel.name} is unlocked with new words.`
+        : `Round ${nextRound} is starting with hidden hints.`;
       celebrationOverlay.classList.remove("visible");
       void celebrationOverlay.offsetWidth;
       celebrationOverlay.classList.add("visible");
@@ -1447,13 +1529,20 @@
         currentWordIndex += 1;
 
         if (currentWordIndex >= level.words.length) {
-          const nextRound = currentRound + 1;
+          const nextLevelIndex = currentLevelIndex + 1;
+          const hasNextLevel = nextLevelIndex < LEVELS.length;
+          const nextRound = hasNextLevel ? currentRound : currentRound + 1;
+          const nextLevelIndexToStart = hasNextLevel ? nextLevelIndex : 0;
+          const nextLevel = hasNextLevel ? LEVELS[nextLevelIndex] : null;
+
           statusText.className = "status-text high";
-          statusText.textContent = `Round ${currentRound} complete`;
-          celebrateText.textContent = "Dance party, then next round.";
-          showLevelCelebration(currentRound);
+          statusText.textContent = `${level.name} complete`;
+          celebrateText.textContent = nextLevel
+            ? `${nextLevel.name} is next.`
+            : `Round ${nextRound} is next.`;
+          showLevelCelebration(level, nextLevel, nextRound);
           setTimeout(() => {
-            startLevel(currentLevelIndex, nextRound);
+            startLevel(nextLevelIndexToStart, nextRound);
           }, 2600);
           return;
         }
