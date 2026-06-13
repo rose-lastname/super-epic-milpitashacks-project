@@ -613,6 +613,61 @@
       box-shadow: 0 14px 28px rgba(2, 48, 71, 0.16);
     }
 
+    .level-actions {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .reveal-button {
+      border: 0;
+      border-radius: 999px;
+      min-height: 46px;
+      color: var(--deep-space-blue);
+      background: rgba(255, 183, 3, 0.32);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.94rem;
+      font-weight: 1000;
+      padding: 10px 14px;
+      box-shadow: 0 14px 28px rgba(2, 48, 71, 0.08);
+    }
+
+    .reveal-button:disabled {
+      cursor: default;
+      opacity: 0.55;
+    }
+
+    .path-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .path-step {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.58);
+      color: var(--soft-ink);
+      font-size: 0.78rem;
+      font-weight: 1000;
+      padding: 7px 9px;
+    }
+
+    .path-step.active {
+      background: rgba(255, 183, 3, 0.32);
+      color: var(--deep-space-blue);
+    }
+
+    .path-step.done {
+      background: rgba(33, 158, 188, 0.2);
+      color: var(--blue-green);
+    }
+
+    .tone-hidden {
+      color: var(--soft-ink);
+      font-style: normal;
+    }
+
     .readout {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -823,8 +878,12 @@
               <span id="wordTone" class="word-tone">High tone: surf up</span>
             </span>
           </div>
+          <div id="pathSteps" class="path-steps" aria-label="Tone path"></div>
           <div id="wordList" class="word-list" aria-label="Level words"></div>
-          <button id="playWordButton" class="audio-button" type="button">Play Word</button>
+          <div class="level-actions">
+            <button id="playWordButton" class="audio-button" type="button">Play Word</button>
+            <button id="revealToneButton" class="reveal-button" type="button">Reveal Tone</button>
+          </div>
         </div>
 
         <div class="tone-chips" aria-label="Tone controls">
@@ -843,7 +902,7 @@
           </div>
         </div>
 
-        <p class="hint">Level 1 practices ma, ni, and hao. Listen first, then move your finger into the matching tone zone.</p>
+        <p class="hint">Level 1 uses mā, nǐ, and hǎo. Round 2 loops with the tone hint hidden unless you reveal it.</p>
       </aside>
     </section>
   </main>
@@ -865,8 +924,10 @@
     const wordHanzi = document.getElementById("wordHanzi");
     const wordPinyin = document.getElementById("wordPinyin");
     const wordTone = document.getElementById("wordTone");
+    const pathSteps = document.getElementById("pathSteps");
     const wordList = document.getElementById("wordList");
     const playWordButton = document.getElementById("playWordButton");
+    const revealToneButton = document.getElementById("revealToneButton");
 
     let detector = null;
     let audioContext = null;
@@ -877,18 +938,45 @@
     let cheatTimer = null;
     let currentLevelIndex = 0;
     let currentWordIndex = 0;
+    let currentRound = 1;
+    let currentPathIndex = 0;
     let matchStartedAt = 0;
     let advancingWord = false;
     let levelComplete = false;
+    let toneHintRevealed = true;
 
     const LEVELS = [
       {
         name: "Level 1",
         mission: "First greetings",
         words: [
-          { pinyin: "ma", hanzi: "妈", target: "high", prompt: "High tone: surf up" },
-          { pinyin: "ni", hanzi: "你", target: "low", prompt: "Low tone: dive down" },
-          { pinyin: "hao", hanzi: "好", target: "low", prompt: "Low tone: dive down" }
+          {
+            pinyin: "mā",
+            plain: "ma",
+            hanzi: "妈",
+            toneNumber: 1,
+            toneLabel: "Tone 1: high-level",
+            path: ["high"],
+            prompt: "stay in the high zone"
+          },
+          {
+            pinyin: "nǐ",
+            plain: "ni",
+            hanzi: "你",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high"
+          },
+          {
+            pinyin: "hǎo",
+            plain: "hao",
+            hanzi: "好",
+            toneNumber: 3,
+            toneLabel: "Tone 3: falling-rising",
+            path: ["high", "low", "high"],
+            prompt: "high, low, high"
+          }
         ]
       },
       {
@@ -939,15 +1027,43 @@
       return currentLevel().words[currentWordIndex];
     }
 
+    function shouldHideToneHint() {
+      return currentRound > 1 && !toneHintRevealed;
+    }
+
+    function toneStepLabel(step) {
+      return step === "high" ? "High" : "Low";
+    }
+
+    function renderToneHint(word) {
+      if (shouldHideToneHint()) {
+        wordTone.textContent = "Tone hidden. Listen and choose.";
+        wordTone.classList.add("tone-hidden");
+      } else {
+        wordTone.textContent = `${word.toneLabel}: ${word.prompt}`;
+        wordTone.classList.remove("tone-hidden");
+      }
+    }
+
     function renderLevel() {
       const level = currentLevel();
       const word = currentWord();
 
-      levelName.textContent = `${level.name}: ${level.mission}`;
+      levelName.textContent = `${level.name}: ${level.mission} - Round ${currentRound}`;
       levelProgress.textContent = `${Math.min(currentWordIndex + 1, level.words.length)} / ${level.words.length}`;
       wordHanzi.textContent = word.hanzi;
       wordPinyin.textContent = word.pinyin;
-      wordTone.textContent = word.prompt;
+      renderToneHint(word);
+
+      pathSteps.innerHTML = "";
+      word.path.forEach((step, index) => {
+        const pathStep = document.createElement("span");
+        pathStep.className = "path-step";
+        if (index < currentPathIndex) pathStep.classList.add("done");
+        if (index === currentPathIndex && !advancingWord) pathStep.classList.add("active");
+        pathStep.textContent = shouldHideToneHint() ? `Step ${index + 1}` : toneStepLabel(step);
+        pathSteps.appendChild(pathStep);
+      });
 
       wordList.innerHTML = "";
       level.words.forEach((levelWord, index) => {
@@ -955,9 +1071,12 @@
         marker.className = "word-dot";
         if (index < currentWordIndex || levelComplete) marker.classList.add("done");
         if (index === currentWordIndex && !levelComplete) marker.classList.add("active");
-        marker.textContent = levelWord.pinyin;
+        marker.textContent = levelWord.plain;
         wordList.appendChild(marker);
       });
+
+      revealToneButton.disabled = !shouldHideToneHint();
+      revealToneButton.textContent = shouldHideToneHint() ? "Reveal Tone" : "Tone Shown";
     }
 
     function speakCurrentWord() {
@@ -968,7 +1087,7 @@
       const utterance = new SpeechSynthesisUtterance(word.hanzi);
       utterance.lang = "zh-CN";
       utterance.rate = 0.82;
-      utterance.pitch = word.target === "high" ? 1.14 : 0.92;
+      utterance.pitch = word.toneNumber === 1 ? 1.14 : 0.96;
       if (gainNode && audioContext) {
         gainNode.gain.setTargetAtTime(0.01, audioContext.currentTime, 0.04);
         utterance.onend = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
@@ -977,16 +1096,21 @@
       window.speechSynthesis.speak(utterance);
     }
 
-    function startLevel(index = 0) {
+    function startLevel(index = 0, round = 1) {
       currentLevelIndex = index;
       currentWordIndex = 0;
+      currentRound = round;
+      currentPathIndex = 0;
       matchStartedAt = 0;
       advancingWord = false;
       levelComplete = false;
+      toneHintRevealed = currentRound === 1;
       renderLevel();
       statusText.className = "status-text neutral";
       setStatus(`Listen: ${currentWord().pinyin}`);
-      celebrateText.textContent = "Hear the word, then surf the tone.";
+      celebrateText.textContent = currentRound === 1
+        ? "Hear the word, then surf the tone."
+        : "Tone hint hidden. Use your ear.";
       speakCurrentWord();
     }
 
@@ -997,6 +1121,8 @@
       const word = currentWord();
       advancingWord = true;
       matchStartedAt = 0;
+      currentPathIndex = word.path.length;
+      renderLevel();
       statusText.textContent = `${word.pinyin} complete`;
       celebrateText.textContent = "Nice tone match.";
 
@@ -1004,22 +1130,26 @@
         currentWordIndex += 1;
 
         if (currentWordIndex >= level.words.length) {
-          levelComplete = true;
-          advancingWord = false;
-          renderLevel();
+          const nextRound = currentRound + 1;
           statusText.className = "status-text high";
-          statusText.textContent = "Level 1 complete";
-          celebrateText.textContent = "You practiced ma, ni, and hao.";
-          startButton.disabled = false;
-          startButton.textContent = "Replay Level";
+          statusText.textContent = `Round ${currentRound} complete`;
+          celebrateText.textContent = "Looping Level 1 with hidden hints.";
+          setTimeout(() => {
+            startLevel(currentLevelIndex, nextRound);
+          }, 950);
           return;
         }
 
         advancingWord = false;
+        currentPathIndex = 0;
+        matchStartedAt = 0;
+        toneHintRevealed = currentRound === 1;
         renderLevel();
         statusText.className = "status-text neutral";
         setStatus(`Listen: ${currentWord().pinyin}`);
-        celebrateText.textContent = "New word. Listen, then move.";
+        celebrateText.textContent = shouldHideToneHint()
+          ? "New word. Tone hint hidden."
+          : "New word. Listen, then move.";
         speakCurrentWord();
       }, 900);
     }
@@ -1031,7 +1161,13 @@
       }
 
       const word = currentWord();
-      if (toneName !== word.target) {
+      const expectedTone = word.path[currentPathIndex];
+
+      if (toneName !== expectedTone) {
+        if (toneName === word.path[0]) {
+          currentPathIndex = 0;
+          renderLevel();
+        }
         matchStartedAt = 0;
         return;
       }
@@ -1042,8 +1178,15 @@
         return;
       }
 
-      if (now - matchStartedAt > 900) {
-        completeCurrentWord();
+      if (now - matchStartedAt > 420) {
+        currentPathIndex += 1;
+        matchStartedAt = 0;
+
+        if (currentPathIndex >= word.path.length) {
+          completeCurrentWord();
+        } else {
+          renderLevel();
+        }
       }
     }
 
@@ -1135,18 +1278,25 @@
     function applyTone(toneName, normalizedY, forced) {
       const tone = TONES[toneName];
       const word = currentWord();
-      const matched = word && toneName === word.target && toneName !== "neutral";
+      const expectedTone = word?.path[currentPathIndex];
+      const matched = word && toneName === expectedTone && toneName !== "neutral";
 
       if (!advancingWord && !levelComplete) {
         if (matched) {
           statusText.textContent = `${word.pinyin}: ${tone.display}`;
-          celebrateText.textContent = "Hold it there.";
+          celebrateText.textContent = currentPathIndex + 1 >= word.path.length
+            ? "Hold it there."
+            : "Good. Keep following the path.";
         } else if (toneName === "neutral") {
           statusText.textContent = `Say ${word.pinyin}`;
-          celebrateText.textContent = word.prompt;
+          celebrateText.textContent = shouldHideToneHint()
+            ? "Tone hint hidden. Listen and choose."
+            : word.prompt;
         } else {
           statusText.textContent = forced ? `${tone.display} demo` : tone.display;
-          celebrateText.textContent = `Try the ${word.target} zone for ${word.pinyin}.`;
+          celebrateText.textContent = shouldHideToneHint()
+            ? `Try another zone for ${word.pinyin}.`
+            : `Next path step: ${toneStepLabel(expectedTone)}.`;
         }
       }
 
@@ -1267,6 +1417,12 @@
 
     playWordButton.addEventListener("click", () => {
       speakCurrentWord();
+    });
+
+    revealToneButton.addEventListener("click", () => {
+      toneHintRevealed = true;
+      renderLevel();
+      celebrateText.textContent = currentWord().prompt;
     });
 
     window.addEventListener("keydown", (event) => {
