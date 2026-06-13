@@ -663,6 +663,40 @@
       color: var(--blue-green);
     }
 
+    .hold-meter {
+      display: grid;
+      gap: 7px;
+      padding: 12px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+    }
+
+    .hold-meter-top {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      color: var(--soft-ink);
+      font-size: 0.82rem;
+      font-weight: 1000;
+    }
+
+    .hold-track {
+      height: 14px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(2, 48, 71, 0.1);
+    }
+
+    .hold-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue-green), var(--amber-flame), var(--princeton-orange));
+      transition: width 80ms linear;
+    }
+
     .tone-hidden {
       color: var(--soft-ink);
       font-style: normal;
@@ -879,6 +913,15 @@
             </span>
           </div>
           <div id="pathSteps" class="path-steps" aria-label="Tone path"></div>
+          <div class="hold-meter" aria-label="Hold progress">
+            <div class="hold-meter-top">
+              <span id="holdLabel">Hold the right zone</span>
+              <span id="holdTime">0.42s</span>
+            </div>
+            <div class="hold-track">
+              <div id="holdFill" class="hold-fill"></div>
+            </div>
+          </div>
           <div id="wordList" class="word-list" aria-label="Level words"></div>
           <div class="level-actions">
             <button id="playWordButton" class="audio-button" type="button">Play Word</button>
@@ -925,6 +968,9 @@
     const wordPinyin = document.getElementById("wordPinyin");
     const wordTone = document.getElementById("wordTone");
     const pathSteps = document.getElementById("pathSteps");
+    const holdLabel = document.getElementById("holdLabel");
+    const holdTime = document.getElementById("holdTime");
+    const holdFill = document.getElementById("holdFill");
     const wordList = document.getElementById("wordList");
     const playWordButton = document.getElementById("playWordButton");
     const revealToneButton = document.getElementById("revealToneButton");
@@ -944,6 +990,8 @@
     let advancingWord = false;
     let levelComplete = false;
     let toneHintRevealed = true;
+
+    const HOLD_DURATION_MS = 420;
 
     const LEVELS = [
       {
@@ -1035,6 +1083,25 @@
       return step === "high" ? "High" : "Low";
     }
 
+    function resetHoldMeter() {
+      holdFill.style.width = "0%";
+      holdTime.textContent = `${(HOLD_DURATION_MS / 1000).toFixed(2)}s`;
+      const word = currentWord();
+      const step = word?.path[currentPathIndex];
+      holdLabel.textContent = step
+        ? `Hold ${shouldHideToneHint() ? "this step" : toneStepLabel(step)}`
+        : "Word complete";
+    }
+
+    function updateHoldMeter(progress) {
+      const safeProgress = Math.max(0, Math.min(1, progress));
+      const remainingMs = Math.max(0, Math.ceil(HOLD_DURATION_MS * (1 - safeProgress)));
+      holdFill.style.width = `${Math.round(safeProgress * 100)}%`;
+      holdTime.textContent = safeProgress >= 1
+        ? "Done"
+        : `${(remainingMs / 1000).toFixed(2)}s`;
+    }
+
     function renderToneHint(word) {
       if (shouldHideToneHint()) {
         wordTone.textContent = "Tone hidden. Listen and choose.";
@@ -1077,6 +1144,7 @@
 
       revealToneButton.disabled = !shouldHideToneHint();
       revealToneButton.textContent = shouldHideToneHint() ? "Reveal Tone" : "Tone Shown";
+      resetHoldMeter();
     }
 
     function speakCurrentWord() {
@@ -1157,6 +1225,7 @@
     function checkWordMatch(toneName) {
       if (!running || advancingWord || levelComplete || toneName === "neutral") {
         matchStartedAt = 0;
+        updateHoldMeter(0);
         return;
       }
 
@@ -1169,16 +1238,22 @@
           renderLevel();
         }
         matchStartedAt = 0;
+        updateHoldMeter(0);
         return;
       }
 
       const now = performance.now();
       if (!matchStartedAt) {
         matchStartedAt = now;
+        updateHoldMeter(0);
         return;
       }
 
-      if (now - matchStartedAt > 420) {
+      const holdProgress = (now - matchStartedAt) / HOLD_DURATION_MS;
+      updateHoldMeter(holdProgress);
+
+      if (now - matchStartedAt > HOLD_DURATION_MS) {
+        updateHoldMeter(1);
         currentPathIndex += 1;
         matchStartedAt = 0;
 
