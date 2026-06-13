@@ -1,48 +1,749 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mandarin Tone Trainer</title>
-    <link rel="stylesheet" href="./src/styles.css" />
-  </head>
-  <body>
-    <main class="app">
-      <section class="lesson">
-        <div>
-          <p class="eyebrow">Tone 2 practice</p>
-          <h1>麻 <span>ma</span></h1>
-          <p class="meaning">hemp · rising tone</p>
-        </div>
-        <button id="startButton" type="button">Start Camera + Mic</button>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ToneSurfer Mandarin</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core@4.22.0/dist/tf-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-converter@4.22.0/dist/tf-converter.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl@4.22.0/dist/tf-backend-webgl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4/hands.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection@2.0.1/dist/hand-pose-detection.min.js"></script>
+
+  <style>
+    :root {
+      color-scheme: light;
+      --cream: #fff8e8;
+      --butter: #ffe7a8;
+      --mint: #bff3dc;
+      --mint-deep: #55c99f;
+      --sky: #bdeeff;
+      --sky-deep: #4dbbe1;
+      --peach: #ffc4a8;
+      --rose: #ff9ec8;
+      --lilac: #d8c7ff;
+      --ink: #25445a;
+      --soft-ink: #63798a;
+      --white: #ffffff;
+      --shadow: rgba(63, 91, 103, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Quicksand", "Nunito", ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 12% 14%, rgba(255, 196, 168, 0.7) 0 76px, transparent 77px),
+        radial-gradient(circle at 88% 11%, rgba(255, 231, 168, 0.9) 0 92px, transparent 93px),
+        radial-gradient(circle at 17% 88%, rgba(216, 199, 255, 0.7) 0 118px, transparent 119px),
+        linear-gradient(180deg, #e9fbff 0%, #f2fff7 48%, #fff8e8 100%);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      left: -8vw;
+      right: -8vw;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    body::before {
+      bottom: 0;
+      height: 24vh;
+      background:
+        radial-gradient(95px 36px at 5% 24%, rgba(77, 187, 225, 0.38) 0 62%, transparent 63%),
+        radial-gradient(110px 42px at 21% 44%, rgba(85, 201, 159, 0.35) 0 62%, transparent 63%),
+        radial-gradient(120px 46px at 39% 22%, rgba(77, 187, 225, 0.34) 0 62%, transparent 63%),
+        radial-gradient(102px 40px at 58% 42%, rgba(85, 201, 159, 0.32) 0 62%, transparent 63%),
+        radial-gradient(118px 45px at 78% 24%, rgba(77, 187, 225, 0.34) 0 62%, transparent 63%),
+        radial-gradient(106px 42px at 93% 45%, rgba(85, 201, 159, 0.32) 0 62%, transparent 63%),
+        linear-gradient(180deg, transparent 0%, rgba(189, 238, 255, 0.46) 68%, rgba(255, 248, 232, 0.9) 100%);
+    }
+
+    body::after {
+      top: 0;
+      height: 100%;
+      background-image:
+        radial-gradient(circle, rgba(255, 158, 200, 0.28) 0 7px, transparent 8px),
+        radial-gradient(circle, rgba(85, 201, 159, 0.24) 0 6px, transparent 7px),
+        radial-gradient(circle, rgba(77, 187, 225, 0.22) 0 5px, transparent 6px);
+      background-position: 9% 28%, 76% 54%, 49% 12%;
+      background-size: 240px 260px, 310px 330px, 270px 290px;
+      opacity: 0.9;
+    }
+
+    .app {
+      width: min(1080px, 100%);
+      display: grid;
+      gap: 18px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .title-card,
+    .camera-shell,
+    .status-panel {
+      border: 4px solid rgba(255, 255, 255, 0.95);
+      border-radius: 28px;
+      box-shadow: 0 20px 45px var(--shadow);
+    }
+
+    .title-card {
+      min-height: 106px;
+      padding: 18px 24px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.58)),
+        linear-gradient(135deg, var(--mint), var(--sky));
+      display: grid;
+      align-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .title-card::after {
+      content: "🎈";
+      position: absolute;
+      right: 22px;
+      top: 12px;
+      font-size: clamp(2.1rem, 5vw, 3.8rem);
+      transform: rotate(10deg);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2.2rem, 5vw, 4.5rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+      font-weight: 1000;
+    }
+
+    .title-mark {
+      color: #159d83;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--soft-ink);
+      font-weight: 850;
+      font-size: 1.05rem;
+    }
+
+    .start-button {
+      min-width: 178px;
+      min-height: 86px;
+      border: 4px solid var(--white);
+      border-radius: 28px;
+      padding: 0 24px;
+      color: #295069;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.68), transparent 52%),
+        linear-gradient(135deg, var(--butter), var(--peach));
+      font: inherit;
+      font-size: 1.2rem;
+      font-weight: 1000;
+      cursor: pointer;
+      box-shadow: 0 10px 0 #f2a172, 0 20px 34px rgba(242, 161, 114, 0.24);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .start-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 0 #f2a172, 0 22px 36px rgba(242, 161, 114, 0.28);
+    }
+
+    .start-button:active {
+      transform: translateY(5px);
+      box-shadow: 0 5px 0 #f2a172, 0 14px 24px rgba(242, 161, 114, 0.22);
+    }
+
+    .start-button:disabled {
+      cursor: default;
+      opacity: 0.82;
+      transform: none;
+    }
+
+    .stage-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .camera-shell {
+      position: relative;
+      overflow: hidden;
+      min-height: 430px;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(180deg, rgba(189, 238, 255, 0.7), rgba(191, 243, 220, 0.52)),
+        var(--white);
+    }
+
+    .camera-shell::before {
+      content: "🏄‍♂️ Surf Cam";
+      position: absolute;
+      left: 18px;
+      top: 16px;
+      z-index: 4;
+      padding: 10px 14px;
+      border: 3px solid var(--white);
+      border-radius: 999px;
+      color: #286178;
+      background: var(--butter);
+      font-size: 0.92rem;
+      font-weight: 1000;
+      box-shadow: 0 8px 18px rgba(85, 128, 143, 0.18);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      min-height: 430px;
+      display: block;
+      object-fit: cover;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.9) 0 8px, transparent 9px),
+        linear-gradient(180deg, #c9f2ff 0%, #e5fff3 52%, #fff0c7 100%);
+    }
+
+    video {
+      display: none;
+    }
+
+    .zone-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      opacity: 0.98;
+    }
+
+    .zone {
+      position: relative;
+      border: 4px dashed transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 1000;
+      letter-spacing: 0;
+      color: var(--ink);
+    }
+
+    .zone span {
+      max-width: min(86%, 360px);
+      padding: 13px 18px;
+      border: 4px solid var(--white);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 10px 22px rgba(67, 105, 119, 0.16);
+      text-align: center;
+      font-size: clamp(1rem, 2vw, 1.22rem);
+    }
+
+    .zone-high {
+      background: linear-gradient(180deg, rgba(189, 238, 255, 0.42), transparent 74%);
+    }
+
+    .zone-low {
+      border-top-color: rgba(77, 187, 225, 0.6);
+      background: linear-gradient(0deg, rgba(255, 231, 168, 0.48), transparent 74%);
+    }
+
+    .zone-overlay.high .zone-high {
+      border-color: rgba(77, 187, 225, 0.9);
+      background: rgba(189, 238, 255, 0.62);
+    }
+
+    .zone-overlay.low .zone-low {
+      border-color: rgba(255, 158, 200, 0.92);
+      background: rgba(255, 231, 168, 0.62);
+    }
+
+    .finger-dot {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 5px solid var(--white);
+      background:
+        radial-gradient(circle at 38% 33%, rgba(255, 255, 255, 0.95) 0 5px, transparent 6px),
+        var(--rose);
+      box-shadow: 0 0 0 9px rgba(255, 158, 200, 0.24), 0 10px 20px rgba(87, 98, 120, 0.22);
+      translate: -50% -50%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 140ms ease, transform 140ms ease;
+      z-index: 5;
+    }
+
+    .finger-dot.visible {
+      opacity: 1;
+    }
+
+    .status-panel {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.64)),
+        linear-gradient(180deg, var(--mint), var(--cream));
+    }
+
+    .tone-card {
+      min-height: 206px;
+      border: 4px solid var(--white);
+      border-radius: 26px;
+      padding: 20px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.58)),
+        var(--sky);
+      display: grid;
+      align-content: center;
+      gap: 12px;
+      box-shadow: inset 0 -10px 0 rgba(77, 187, 225, 0.16);
+    }
+
+    .status-label {
+      margin: 0;
+      color: #338768;
+      font-weight: 1000;
+      font-size: 0.92rem;
+    }
+
+    .status-text {
+      margin: 0;
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 1.05;
+      font-weight: 1000;
+      letter-spacing: 0;
+    }
+
+    .status-text.high {
+      color: #1689bc;
+    }
+
+    .status-text.low {
+      color: #d85593;
+    }
+
+    .status-text.neutral {
+      color: #da8a2e;
+    }
+
+    .readout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .meter {
+      min-height: 82px;
+      border: 4px solid var(--white);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.74);
+      padding: 13px;
+      color: var(--soft-ink);
+      font-weight: 900;
+      box-shadow: 0 10px 22px rgba(70, 111, 124, 0.12);
+    }
+
+    .meter strong {
+      display: block;
+      margin-top: 3px;
+      color: var(--ink);
+      font-size: 1.42rem;
+      font-weight: 1000;
+    }
+
+    .hint {
+      margin: 0;
+      border: 4px solid var(--white);
+      border-radius: 24px;
+      padding: 14px;
+      color: var(--ink);
+      background: rgba(255, 231, 168, 0.64);
+      font-size: 1.04rem;
+      font-weight: 820;
+      line-height: 1.42;
+      box-shadow: 0 10px 22px rgba(70, 111, 124, 0.12);
+    }
+
+    .celebrate {
+      min-height: 36px;
+      color: #e46d52;
+      font-size: 1.16rem;
+      font-weight: 1000;
+    }
+
+    .pulse {
+      animation: pulse 520ms ease;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.045) rotate(-1deg); }
+      100% { transform: scale(1); }
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 14px;
+      }
+
+      header,
+      .stage-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .start-button {
+        width: 100%;
+      }
+
+      .camera-shell,
+      canvas {
+        min-height: 54vh;
+      }
+
+      .title-card::after {
+        opacity: 0.38;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <section class="title-card" aria-label="ToneSurfer Mandarin title">
+        <h1><span class="title-mark">ToneSurfer</span> Mandarin 🌊</h1>
+        <p class="subtitle">A playful beach game for practicing Mandarin tones</p>
       </section>
+      <button id="startButton" class="start-button">Start Surf 🏄‍♂️</button>
+    </header>
 
-      <section class="workspace">
-        <div class="camera-panel">
-          <video id="video" autoplay playsinline muted></video>
-          <canvas id="handCanvas" aria-label="Hand movement path"></canvas>
+    <section class="stage-grid" aria-label="ToneSurfer Mandarin game">
+      <div class="camera-shell">
+        <video id="video" playsinline muted></video>
+        <canvas id="canvas" width="960" height="540"></canvas>
+        <div id="zoneOverlay" class="zone-overlay" aria-hidden="true">
+          <div class="zone zone-high"><span>🌊 Surf Up: High Tone</span></div>
+          <div class="zone zone-low"><span>📉 Dive Down: Low Tone</span></div>
+        </div>
+        <div id="fingerDot" class="finger-dot" aria-hidden="true"></div>
+      </div>
+
+      <aside class="status-panel">
+        <div id="toneCard" class="tone-card">
+          <p class="status-label">🎈 Beach Mission</p>
+          <p id="statusText" class="status-text neutral">Surf up for High Tone</p>
+          <div id="celebrateText" class="celebrate"></div>
         </div>
 
-        <div class="score-panel">
-          <div>
-            <p class="label">Target</p>
-            <canvas id="targetCanvas" aria-label="Target rising tone shape"></canvas>
+        <div class="readout">
+          <div class="meter">
+            ☝️ Finger Spot
+            <strong id="yReadout">--</strong>
           </div>
-
-          <div>
-            <p class="label">Your hand path</p>
-            <p id="gestureFeedback" class="feedback">Waiting to start.</p>
-          </div>
-
-          <div>
-            <p class="label">Your voice</p>
-            <canvas id="audioCanvas" aria-label="Voice volume trace"></canvas>
-            <p id="voiceFeedback" class="feedback">Microphone inactive.</p>
+          <div class="meter">
+            🎵 Pitch
+            <strong id="pitchReadout">330Hz</strong>
           </div>
         </div>
-      </section>
-    </main>
 
-    <script src="./src/app.js" type="module"></script>
-  </body>
+        <p class="hint">Point one finger up to sing HIGH: Mā. Point it down to sing LOW: Mà. Press H or L for demo mode.</p>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const startButton = document.getElementById("startButton");
+    const statusText = document.getElementById("statusText");
+    const celebrateText = document.getElementById("celebrateText");
+    const zoneOverlay = document.getElementById("zoneOverlay");
+    const fingerDot = document.getElementById("fingerDot");
+    const yReadout = document.getElementById("yReadout");
+    const pitchReadout = document.getElementById("pitchReadout");
+    const toneCard = document.getElementById("toneCard");
+
+    let detector = null;
+    let audioContext = null;
+    let oscillator = null;
+    let gainNode = null;
+    let running = false;
+    let cheatTone = null;
+    let cheatTimer = null;
+
+    const TONES = {
+      high: {
+        display: "HIGH wave: Mā 🌊",
+        pitch: 440,
+        wave: "sawtooth",
+        className: "high",
+        celebration: "Robot surfer voice! 🤖"
+      },
+      low: {
+        display: "LOW wave: Mà 📉",
+        pitch: 220,
+        wave: "sine",
+        className: "low",
+        celebration: "Big splash low tone! 💦"
+      },
+      neutral: {
+        display: "Surf up for High Tone",
+        pitch: 330,
+        wave: "sine",
+        className: "neutral",
+        celebration: "Find your wave!"
+      }
+    };
+
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    function resizeCanvasToVideo() {
+      if (!video.videoWidth || !video.videoHeight) return;
+      if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      }
+    }
+
+    async function setupWebcam() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 960 },
+          height: { ideal: 540 },
+          facingMode: "user"
+        },
+        audio: false
+      });
+
+      video.srcObject = stream;
+      await video.play();
+      resizeCanvasToVideo();
+    }
+
+    async function setupHandTracking() {
+      await tf.setBackend("webgl");
+      await tf.ready();
+
+      detector = await handPoseDetection.createDetector(
+        handPoseDetection.SupportedModels.MediaPipeHands,
+        {
+          runtime: "mediapipe",
+          modelType: "lite",
+          maxHands: 1,
+          solutionPath: "https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4"
+        }
+      );
+    }
+
+    function setupAudio() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioContextClass();
+      oscillator = audioContext.createOscillator();
+      gainNode = audioContext.createGain();
+
+      oscillator.type = "sine";
+      oscillator.frequency.value = 330;
+      gainNode.gain.value = 0.12;
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      oscillator.start();
+    }
+
+    function drawCameraFrame() {
+      resizeCanvasToVideo();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (video.readyState >= 2 && video.videoWidth && video.videoHeight) {
+        ctx.save();
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.fillStyle = "#d9f7ff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fff7df";
+        ctx.beginPath();
+        ctx.arc(canvas.width * 0.5, canvas.height * 0.6, canvas.width * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#55c99f";
+        ctx.font = "bold 34px Quicksand, Nunito, sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Camera waves appear here", canvas.width / 2, canvas.height / 2);
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(77, 187, 225, 0.82)";
+      ctx.lineWidth = 5;
+      ctx.setLineDash([18, 14]);
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height * 0.5);
+      ctx.lineTo(canvas.width, canvas.height * 0.5);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function toneFromY(normalizedY) {
+      if (normalizedY < 0.3) return "high";
+      if (normalizedY > 0.7) return "low";
+      return "neutral";
+    }
+
+    function applyTone(toneName, normalizedY, forced) {
+      const tone = TONES[toneName];
+
+      statusText.textContent = forced ? `${tone.display} - Cheat!` : tone.display;
+      statusText.className = `status-text ${tone.className}`;
+      celebrateText.textContent = tone.celebration;
+      zoneOverlay.className = `zone-overlay ${toneName}`;
+      yReadout.textContent = typeof normalizedY === "number" ? normalizedY.toFixed(2) : "--";
+      pitchReadout.textContent = `${tone.pitch}Hz`;
+
+      if (oscillator && audioContext) {
+        oscillator.type = tone.wave;
+        oscillator.frequency.cancelScheduledValues(audioContext.currentTime);
+        oscillator.frequency.setTargetAtTime(tone.pitch, audioContext.currentTime, 0.075);
+      }
+
+      if (toneName !== "neutral") {
+        toneCard.classList.remove("pulse");
+        void toneCard.offsetWidth;
+        toneCard.classList.add("pulse");
+      }
+    }
+
+    function placeFingerDot(indexTip) {
+      const cameraBox = canvas.getBoundingClientRect();
+      const shellBox = canvas.parentElement.getBoundingClientRect();
+
+      const normalizedX = Math.min(1, Math.max(0, indexTip.x / video.videoWidth));
+      const normalizedY = Math.min(1, Math.max(0, indexTip.y / video.videoHeight));
+
+      const canvasX = canvas.width - (normalizedX * canvas.width);
+      const canvasY = normalizedY * canvas.height;
+      const screenX = (canvasX / canvas.width) * cameraBox.width + cameraBox.left - shellBox.left;
+      const screenY = (canvasY / canvas.height) * cameraBox.height + cameraBox.top - shellBox.top;
+
+      fingerDot.style.left = `${screenX}px`;
+      fingerDot.style.top = `${screenY}px`;
+      fingerDot.classList.add("visible");
+    }
+
+    function hideFingerDot() {
+      fingerDot.classList.remove("visible");
+    }
+
+    async function detectLoop() {
+      if (!running) return;
+
+      drawCameraFrame();
+
+      let detectedTone = "neutral";
+      let normalizedY = null;
+
+      if (detector && video.readyState >= 2) {
+        try {
+          const hands = await detector.estimateHands(video, { flipHorizontal: false });
+          if (hands.length && hands[0].keypoints && hands[0].keypoints[8]) {
+            const indexTip = hands[0].keypoints[8];
+            normalizedY = Math.min(1, Math.max(0, indexTip.y / video.videoHeight));
+            detectedTone = toneFromY(normalizedY);
+            placeFingerDot(indexTip);
+          } else {
+            hideFingerDot();
+          }
+        } catch (error) {
+          console.warn("Hand tracking skipped this frame:", error);
+        }
+      }
+
+      if (cheatTone) {
+        applyTone(cheatTone, cheatTone === "high" ? 0.12 : 0.88, true);
+      } else {
+        applyTone(detectedTone, normalizedY, false);
+      }
+
+      requestAnimationFrame(detectLoop);
+    }
+
+    function triggerCheat(toneName) {
+      cheatTone = toneName;
+      applyTone(toneName, toneName === "high" ? 0.12 : 0.88, true);
+      clearTimeout(cheatTimer);
+      cheatTimer = setTimeout(() => {
+        cheatTone = null;
+        if (!running) applyTone("neutral", null, false);
+      }, 2500);
+    }
+
+    startButton.addEventListener("click", async () => {
+      startButton.disabled = true;
+      startButton.textContent = "Waxing Board...";
+      setStatus("Warming up surf cam...");
+
+      try {
+        if (!audioContext) setupAudio();
+        if (audioContext.state === "suspended") await audioContext.resume();
+
+        await setupWebcam();
+        await setupHandTracking();
+
+        running = true;
+        startButton.textContent = "Surfing Now 🌊";
+        applyTone("neutral", null, false);
+        detectLoop();
+      } catch (error) {
+        console.error(error);
+        startButton.disabled = false;
+        startButton.textContent = "Start Surf 🏄‍♂️";
+        statusText.className = "status-text neutral";
+        setStatus("Surf cam needs permission");
+        celebrateText.textContent = "Allow webcam access when the browser asks.";
+      }
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const key = event.key.toLowerCase();
+      if (key === "h") {
+        triggerCheat("high");
+        if (audioContext && audioContext.state === "suspended") audioContext.resume();
+      }
+      if (key === "l") {
+        triggerCheat("low");
+        if (audioContext && audioContext.state === "suspended") audioContext.resume();
+      }
+    });
+
+    drawCameraFrame();
+    applyTone("neutral", null, false);
+  </script>
+</body>
 </html>
