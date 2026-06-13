@@ -61,4 +61,226 @@
             margin: 0 auto 25px auto;
             border-radius: 24px;
             overflow: hidden;
-            box-shadow: 0 12px 24px rgba(51, 78, 67, 0.
+            box-shadow: 0 12px 24px rgba(51, 78, 67, 0.1);
+            border: 8px solid white;
+            background: #e2ede8;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
+            border: 2px solid #eef3f0;
+        }
+
+        #status-card {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.6rem;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        .btn {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.3rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0px #539d89;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #539d89;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .cheat-indicator {
+            font-size: 0.85rem;
+            opacity: 0.5;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ToneSurfer Mandarin 🌊</h1>
+        <p class="subtitle">Sculpt language waves with your hands!</p>
+
+        <div id="canvas-container"></div>
+
+        <button id="start-btn" class="btn">Start Surfing! 🚀</button>
+
+        <div id="game-controls" class="hidden">
+            <div id="status-card" class="card">
+                Loading AI Hand Tracking Module... ⏳
+            </div>
+        </div>
+
+        <div class="cheat-indicator">
+            Presentation Mode: Press <strong>H</strong> for High Tone, <strong>L</strong> for Low Tone, <strong>N</strong> to Reset.
+        </div>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('start-btn');
+        const gameControls = document.getElementById('game-controls');
+        const statusCard = document.getElementById('status-card');
+
+        let video;
+        let handpose;
+        let hands = [];
+        
+        let audioCtx = null;
+        let oscillator = null;
+        let gainNode = null;
+        let audioInitialized = false;
+        let gameActive = false;
+        let cheatMode = false;
+
+        // p5.js Setup function (Runs automatically upon boot)
+        function setup() {
+            // Put the canvas directly inside our styled HTML frame box
+            let cnv = createCanvas(640, 480);
+            cnv.parent('canvas-container');
+            
+            // Capture webcam feed natively via p5 framework
+            video = createCapture(VIDEO);
+            video.size(640, 480);
+            video.hide(); // Hide the default HTML raw video track
+
+            // Initialize ml5 Handpose library tracking engine
+            handpose = ml5.handpose(video, () => {
+                statusCard.innerText = "Wave your hand to find the pitch! 🏄‍♂️";
+            });
+
+            // Listen continuously to tracking results arrays
+            handpose.on('hand', (results) => {
+                hands = results;
+            });
+        }
+
+        // p5.js Draw Loop (Runs continuously at 60 Frames Per Second)
+        function draw() {
+            if (!gameActive) {
+                background('#e2ede8');
+                return;
+            }
+
+            // MIRROR CORRECTION: Flip webcam rendering across the canvas horizontally
+            translate(width, 0);
+            scale(-1, 1);
+            image(video, 0, 0, width, height);
+            
+            // Revert matrix translations so visual guide lines don't get flipped awkwardly
+            scale(-1, 1);
+            translate(-width, 0);
+
+            // Draw clean pastel zone dividers
+            stroke('rgba(110, 188, 167, 0.4)');
+            strokeWeight(3);
+            line(0, 144, 640, 144); // High zone marker boundary (30%)
+            line(0, 336, 640, 336); // Low zone marker boundary (70%)
+
+            if (cheatMode) return;
+
+            // If a hand array is populated from the tracking model
+            if (hands.length > 0) {
+                let hand = hands[0];
+                
+                // Fetch the index finger tip coordinates (Landmark Node 8)
+                let indexFinger = hand.landmarks[8];
+                let x = indexFinger[0];
+                let y = indexFinger[1];
+
+                // MIRRORED FEEDBACK FIX: Flip visual circle drawing vector horizontally to align with mirrored feed
+                let mirroredX = width - x;
+
+                // Draw Whimsical Coral Tracking Marker Point
+                fill('#ff7b7b');
+                stroke('#ffffff');
+                strokeWeight(4);
+                ellipse(mirroredX, y, 28, 28);
+
+                // Calculate vertical placement ratio from 0.0 to 1.0
+                let normalizedY = y / height;
+
+                if (normalizedY < 0.3) {
+                    setPitch(466);
+                    updateUI("Tone: HIGH (Mā) 🎈", "#ffebeb");
+                } else if (normalizedY > 0.7) {
+                    setPitch(233);
+                    updateUI("Tone: LOW (Mà) 📉", "#eef3f0");
+                } else {
+                    setPitch(349);
+                    updateUI("Surfing the Wave... 🏄‍♂️", "#ffffff");
+                }
+            }
+        }
+
+        function initAudio() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            oscillator = audioCtx.createOscillator();
+            gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(330, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            audioInitialized = true;
+        }
+
+        function setPitch(frequency) {
+            if (!audioInitialized) return;
+            oscillator.frequency.exponentialRampToValueAtTime(frequency, audioCtx.currentTime + 0.08);
+        }
+
+        function updateUI(text, colorBg, waveform = 'sine') {
+            statusCard.innerText = text;
+            statusCard.style.backgroundColor = colorBg;
+            if (audioInitialized) {
+                oscillator.type = waveform;
+            }
+        }
+
+        startBtn.addEventListener('click', () => {
+            initAudio();
+            startBtn.classList.add('hidden');
+            gameControls.classList.remove('hidden');
+            gameActive = true;
+        });
+
+        // Presentation Keybind Overrides
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'h' || key === 'l' || key === 'n') {
+                cheatMode = true;
+            }
+
+            if (key === 'h') {
+                setPitch(466);
+                updateUI("Unlocked ROBOT Mode! 🤖✨", "#ffe699", "sawtooth");
+            } else if (key === 'l') {
+                setPitch(233);
+                updateUI("Tone: LOW (Mà) 📉", "#eef3f0", "sine");
+            } else if (key === 'n') {
+                cheatMode = false;
+                setPitch(349);
+                updateUI("Surfing the Wave... 🏄‍♂️", "#ffffff", "sine");
+            }
+        });
+    </script>
+</body>
+</html>
