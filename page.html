@@ -4,6 +4,12 @@
 <title>Page Title</title>
 </head>
 <body>
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>  
+  
 <!--this is a webcam thing so far all it does is show the webcam feed
 its flipped -->
 <video id="webcam" autoplay playsinline width="640" height="480"></video>
@@ -17,10 +23,6 @@ its flipped -->
     .catch(error => {
       console.error('Webcam access denied or unavailable:', error);
     });
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/hand-pose-detection"></script>
 
 </body>
 </html>
