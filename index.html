@@ -999,6 +999,189 @@
       border-radius: 0;
     }
 
+    .brand-logo {
+      display: block;
+      width: min(620px, 100%);
+      height: auto;
+      margin: -8px 0 -10px;
+      filter: drop-shadow(0 10px 0 rgba(0, 0, 0, 0.16));
+      position: relative;
+      z-index: 1;
+    }
+
+    body {
+      background:
+        linear-gradient(135deg, rgba(0, 0, 0, 0.05) 0 18px, transparent 19px) 0 0 / 88px 88px,
+        radial-gradient(circle at 12% 18%, rgba(8, 54, 145, 0.16) 0 82px, transparent 83px),
+        radial-gradient(circle at 88% 14%, rgba(255, 231, 182, 0.74) 0 96px, transparent 97px),
+        linear-gradient(145deg, #f7f2e8 0%, #dfe8f6 54%, #ffe8b5 100%);
+      color: #050505;
+      font-family: "Trebuchet MS", "Comic Sans MS", "Quicksand", system-ui, sans-serif;
+    }
+
+    body::before {
+      background:
+        radial-gradient(160px 46px at 8% 36%, rgba(6, 50, 139, 0.26) 0 62%, transparent 63%),
+        radial-gradient(170px 52px at 31% 48%, rgba(0, 0, 0, 0.12) 0 62%, transparent 63%),
+        radial-gradient(164px 50px at 55% 34%, rgba(219, 229, 245, 0.6) 0 62%, transparent 63%),
+        radial-gradient(178px 54px at 82% 48%, rgba(6, 50, 139, 0.22) 0 62%, transparent 63%);
+    }
+
+    body::after {
+      background-image:
+        linear-gradient(35deg, transparent 0 44%, rgba(0, 0, 0, 0.08) 45% 49%, transparent 50%),
+        radial-gradient(circle, rgba(6, 50, 139, 0.18) 0 5px, transparent 6px);
+      background-size: 220px 180px, 280px 300px;
+      opacity: 0.58;
+    }
+
+    .title-card,
+    .camera-shell,
+    .tone-card,
+    .level-panel,
+    .word-card,
+    .meaning-card,
+    .meter,
+    .hint,
+    .start-button,
+    .tone-chip,
+    .hold-meter,
+    .celebration-card {
+      border: 5px solid #050505;
+      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.92);
+    }
+
+    .title-card {
+      min-height: 210px;
+      padding: 20px 24px 18px;
+      background:
+        linear-gradient(105deg, rgba(255, 232, 181, 0.9), rgba(219, 229, 245, 0.86)),
+        #f7f2e8;
+    }
+
+    .title-card::after {
+      display: none;
+    }
+
+    .subtitle,
+    .status-label,
+    .word-tone,
+    .meter,
+    .meaning-label,
+    .hint {
+      color: rgba(0, 0, 0, 0.72);
+    }
+
+    .nav-pill,
+    .level-name,
+    .level-progress,
+    .word-dot,
+    .path-step,
+    .zone span,
+    .camera-shell::before {
+      border: 3px solid #050505;
+      background: #ffe8b5;
+      color: #050505;
+      box-shadow: 4px 4px 0 #050505;
+    }
+
+    .nav-icon.home,
+    .nav-icon.spark,
+    .chip-icon.high,
+    .chip-icon.low,
+    .camera-shell::before {
+      background-color: #06328b;
+      color: #ffe8b5;
+      text-shadow: 2px 2px 0 #050505;
+    }
+
+    .start-button,
+    .audio-button {
+      background: #06328b;
+      color: #ffe8b5;
+      text-shadow: 2px 2px 0 #050505;
+    }
+
+    .start-button::before {
+      background:
+        linear-gradient(90deg, transparent 0 43%, #ffe8b5 44% 56%, transparent 57%),
+        linear-gradient(0deg, transparent 0 43%, #ffe8b5 44% 56%, transparent 57%),
+        #06328b;
+      border: 3px solid #050505;
+    }
+
+    .reveal-button,
+    .tone-chip,
+    .hold-meter,
+    .hint {
+      background: #ffe8b5;
+      color: #050505;
+    }
+
+    .camera-shell {
+      background:
+        linear-gradient(180deg, rgba(219, 229, 245, 0.9), rgba(6, 50, 139, 0.18)),
+        #dbe5f5;
+    }
+
+    canvas {
+      background:
+        radial-gradient(circle at 58% 42%, rgba(219, 229, 245, 0.86) 0 34%, transparent 35%),
+        linear-gradient(180deg, #dbe5f5 0%, #7ea4d7 56%, #06328b 100%);
+      border: 4px solid #050505;
+    }
+
+    .tone-card,
+    .level-panel,
+    .word-card,
+    .meaning-card,
+    .meter {
+      background: rgba(247, 242, 232, 0.94);
+    }
+
+    .hanzi,
+    .meaning-photo {
+      border: 4px solid #050505;
+    }
+
+    .hanzi {
+      background: #06328b;
+      color: #ffe8b5;
+      text-shadow: 3px 3px 0 #050505;
+    }
+
+    .status-text,
+    .pinyin,
+    .meaning-text {
+      color: #06328b;
+      text-shadow: 2px 2px 0 rgba(255, 232, 181, 0.86);
+    }
+
+    .status-text.high,
+    .status-text.low,
+    .status-text.neutral,
+    .celebrate,
+    .meaning-sentence {
+      color: #06328b;
+    }
+
+    .hold-track {
+      border: 3px solid #050505;
+      background: #dbe5f5;
+    }
+
+    .hold-fill {
+      background: linear-gradient(90deg, #06328b, #dbe5f5, #ffe8b5);
+    }
+
+    .finger-dot,
+    .sparkle,
+    .mascot {
+      border: 4px solid #050505;
+      background: #dbe5f5;
+      box-shadow: 5px 5px 0 #050505;
+    }
+
     @media (max-width: 900px) {
       body {
         padding: 14px;
@@ -1042,7 +1225,7 @@
           <span class="nav-pill"><span class="nav-icon home" aria-hidden="true"></span> Tone Studio</span>
           <span class="nav-pill"><span class="nav-icon spark" aria-hidden="true"></span><span id="levelBadge">Level 1 / 3</span></span>
         </div>
-        <h1><span class="title-mark">ToneSurfer</span> Mandarin</h1>
+        <img class="brand-logo" src="./assets/tonesurfer-logo.png" alt="Tone Surfer" />
         <p class="subtitle">A playful beach game for practicing Mandarin tones</p>
       </section>
       <button id="startButton" class="start-button">Start Surf</button>
