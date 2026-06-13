@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToneSurfer Mandarin 🌊</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/@jsfe/mediapipe-camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jsfe/mediapipe-hands/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        :root {
+            --bg-color: #f7f9f6; /* Soft cream/mint */
+            --primary-color: #6ebca7; /* Chic matcha green */
+            --accent-pink: #ffb4b4; /* Soft whimsical pink */
+            --accent-yellow: #ffe699; /* Sunny yellow */
+            --text-dark: #334e43; /* Deep matcha for high contrast text */
+        }
+
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 2.8rem;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+            text-shadow: 1px 1px 0px #fff, 2px 2px 0px rgba(0,0,0,0.05);
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 25px;
+            opacity: 0.8;
+        }
+
+        /* Video Container Setup */
+        .video-box {
+            position: relative;
+            width: 640px;
+            height: 480px;
+            margin: 0 auto 25px auto;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 12px 24px rgba(51, 78, 67, 0.1);
+            border: 8px solid white;
+            background: #e2ede8;
+        }
+
+        /* Mirrored layout for instinctive human interaction */
+        #webcam {
+            transform: scaleX(-1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 640px;
+            height: 480px;
+            object-fit: cover;
+        }
+
+        #output-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 640px;
+            height: 480px;
+            z-index: 2;
+        }
+
+        /* Chic UI Cards */
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
+            border: 2px solid #eef3f0;
+        }
+
+        #status-card {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.6rem;
+            transition: all 0.3s ease;
+            background: #fff;
+        }
+
+        /* Whimsical Buttons */
+        .btn {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1.3rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 6px 0px #539d89;
+            transition: all 0.1s ease;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #539d89;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .cheat-indicator {
+            font-size: 0.85rem;
+            opacity: 0.5;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>ToneSurfer Mandarin 🌊</h1>
+        <p class="subtitle">Sculpt language waves with your hands!</p>
+
+        <div class="video-box">
+            <video id="webcam" autoplay playsinline></video>
+            <canvas id="output-canvas" width="640" height="480"></canvas>
+        </div>
+
+        <button id="start-btn" class="btn">Start Surfing! 🚀</button>
+
+        <div id="game-controls" class="hidden">
+            <div id="status-card" class="card">
+                Wave your hand to find the pitch! 🏄‍♂️
+            </div>
+        </div>
+
+        <div class="cheat-indicator">
+            Presentation Mode: Press <strong>H</strong> for High Tone, <strong>L</strong> for Low Tone, <strong>N</strong> to Reset.
+        </div>
+    </div>
+
+    <script>
+        // --- 1. DOM ELEMENT REFERENCES ---
+        // We fetch the HTML elements here so JavaScript can control and read them.
+        const videoElement = document.getElementById('webcam');
+        const canvasElement = document.getElementById('output-canvas');
+        const canvasCtx = canvasElement.getContext('2d'); // This context allows us to draw 2D shapes (like our tracking dot)
+        const startBtn = document.getElementById('start-btn');
+        const gameControls = document.getElementById('game-controls');
+        const statusCard = document.getElementById('status-card');
+
+        // --- 2. GLOBAL STATE VARIABLES ---
+        let audioCtx = null;       // Holds the main web audio pipeline
+        let oscillator = null;     // Our digital synthesizer instrument
+        let gainNode = null;       // The master volume control knob
+        let audioInitialized = false; 
+        let cheatMode = false;     // Switches on if a presenter presses a key shortcut
+
+        // --- 3. AUDIO ENGINE INITIALIZATION ---
+        // Modern browsers block audio from playing automatically to stop spam.
+        // This function must run only AFTER the user clicks a button on screen.
+        function initAudio() {
+            // Creates the digital sound studio environment
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Creates a raw wave generator node
+            oscillator = audioCtx.createOscillator();
+            
+            // Creates a volume control node
+            gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine'; // A round, pure whistle sound. Best for hearing tone isolation.
+            oscillator.frequency.setValueAtTime(330, audioCtx.currentTime); // Standard neutral frequency
+            
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime); // Sets volume to a comfortable 15% capacity
+
+            // Connects the nodes like virtual audio cables: Instrument -> Volume Slider -> Computer Speakers
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start(); // Starts the sound wave oscillation engine
+            audioInitialized = true;
+        }
+
+        // --- 4. SMOOTH PITCH MODULATION ---
+        // Instead of the audio jumping instantly and sounding robotic/choppy,
+        // this method glides the frequency value over a fraction of a second.
+        function setPitch(frequency) {
+            if (!audioInitialized) return;
+            // Glides smoothly over a 0.08 second timeframe to emulate natural human voice inflection
+            oscillator.frequency.exponentialRampToValueAtTime(frequency, audioCtx.currentTime + 0.08);
+        }
+
+        // --- 5. UI UPDATES ---
+        // Keeps the visual card content synchronized with the tone states
+        function updateUI(text, colorBg, waveform = 'sine') {
+            statusCard.innerText = text;
+            statusCard.style.backgroundColor = colorBg;
+            if (audioInitialized) {
+                // If a special reward is triggered, change the underlying tone texture (e.g. to a buzzing robot sawtooth)
+                oscillator.type = waveform; 
+            }
+        }
+
+        // --- 6. MEDIAPIPE FRAME-BY-FRAME ANALYSIS LOOP ---
+        // This function runs dynamically every time the webcam generates a new video frame
+        function onResults(results) {
+            // Clear out the canvas drawings from the previous video frame to prevent trails
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            // Draw clean pastel zone lines to guide the child visually
+            canvasCtx.strokeStyle = 'rgba(110, 188, 167, 0.2)';
+            canvasCtx.lineWidth = 3;
+            
+            // Draw High Zone boundary line at 30% down from the screen top (480px * 0.3 = 144px)
+            canvasCtx.beginPath(); canvasCtx.moveTo(0, 144); canvasCtx.lineTo(640, 144); canvasCtx.stroke();
+            
+            // Draw Low Zone boundary line at 70% down from the screen top (480px * 0.7 = 336px)
+            canvasCtx.beginPath(); canvasCtx.moveTo(0, 336); canvasCtx.lineTo(640, 336); canvasCtx.stroke();
+
+            // If the developer is manually demonstrating using cheat keys, freeze camera interaction logic
+            if (cheatMode) return;
+
+            // Ensure MediaPipe actually detects a human hand in the current video frame
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const hand = results.multiHandLandmarks[0]; // Isolate data for the first hand found
+                const indexFinger = hand[8]; // Array item 8 corresponds directly to the index finger tip tracking node
+
+                // CRITICAL CORRECTION LOGIC FOR MIRRORED FEEDBACK:
+                // MediaPipe processes the raw, un-flipped video array data. But our user sees a mirrored video.
+                // If we draw the dot directly, moving your hand right would make the dot move left.
+                // We fix this by subtracting the percentage from 1.0 (e.g., if hand is at 20% from left, we draw it at 80% from left).
+                const mirroredX = canvasElement.width - (indexFinger.x * canvasElement.width);
+                const computedY = indexFinger.y * canvasElement.height; // Standard Y mapping (0.0 top to 1.0 bottom)
+
+                // Draw the whimsical coral-colored target indicator circle centered exactly on the corrected coordinate
+                canvasCtx.fillStyle = '#ff7b7b';
+                canvasCtx.beginPath();
+                canvasCtx.arc(mirroredX, computedY, 14, 0, 2 * Math.PI); // Draw 14px radius circle
+                canvasCtx.fill();
+                canvasCtx.lineWidth = 4;
+                canvasCtx.strokeStyle = '#ffffff'; // White ring border around the dot
+                canvasCtx.stroke();
+
+                // --- 7. ZONE CONDITIONALS ---
+                // MediaPipe tracks Y as a decimal percent from 0.0 (top) to 1.0 (bottom)
+                if (indexFinger.y < 0.3) {
+                    // Hand is in the top 30% of webcam frame
+                    setPitch(466); // Shift to High pitch frequency note
+                    updateUI("Tone: HIGH (Mā) 🎈", "#ffebeb");
+                } else if (indexFinger.y > 0.7) {
+                    // Hand is in the bottom 30% of webcam frame
+                    setPitch(233); // Shift to Low pitch frequency note
+                    updateUI("Tone: LOW (Mà) 📉", "#eef3f0");
+                } else {
+                    // Hand is resting somewhere in the center 40% threshold
+                    setPitch(349); // Steady mid tone
+                    updateUI("Surfing the Wave... 🏄‍♂️", "#ffffff");
+                }
+            }
+        }
+
+        // --- 8. MEDIAPIPE MODEL INITIALIZATION ---
+        // Fetch external script configurations to setup hand logic structures
+        const hands = new Hands({
+            locateFile: (file) => `https://cdn.jsdelivr.net/npm/@jsfe/mediapipe-hands/${file}`
+        });
+
+        // Optimization options to keep performance high on simple laptops during hackathons
+        hands.setOptions({
+            maxNumHands: 1,          // Only track one hand to preserve CPU usage
+            modelComplexity: 1,      // Lite model for tracking execution speed stability
+            minDetectionConfidence: 0.5,
+            minTrackingConfidence: 0.5
+        });
+        hands.onResults(onResults); // Tells MediaPipe to throw its tracking output data straight into our processing loop
+
+        // Connect the hardware webcam streaming source directly to MediaPipe
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({ image: videoElement }); // Ship current frame down the analytical track
+            },
+            width: 640,
+            height: 480
+        });
+
+        // --- 9. APPLICATION ENTRY POINT ---
+        // Fired when the child clicks the "Start Surfing" action button
+        startBtn.addEventListener('click', () => {
+            initAudio(); // Unlocks browser audio environment securely
+            startBtn.classList.add('hidden'); // Clear button away
+            gameControls.classList.remove('hidden'); // Reveal gameplay interfaces
+            camera.start(); // Turn webcam on
+        });
+
+        // --- 10. DEVELOPER PITCH-SAFE SHORTCUTS (CHEAT KEYS) ---
+        // Hardcoded listeners that instantly force game states. 
+        // Allows presenters to bypass any potential camera glitches on stage seamlessly.
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'h' || key === 'l' || key === 'n') {
+                cheatMode = true; // Block physical camera calculations from overwriting us
+            }
+
+            if (key === 'h') {
+                setPitch(466);
+                // Changes tone structure shape to 'sawtooth' to mimic a funny retro robotic buzz effect reward
+                updateUI("Unlocked ROBOT Mode! 🤖✨", "#ffe699", "sawtooth");
+            } else if (key === 'l') {
+                setPitch(233);
+                updateUI("Tone: LOW (Mà) 📉", "#eef3f0", "sine");
+            } else if (key === 'n') {
+                cheatMode = false; // Relinquish control back to webcam interaction tracking loop
+                setPitch(349);
+                updateUI("Surfing the Wave... 🏄‍♂️", "#ffffff", "sine");
+            }
+        });
+    </script>
+</body>
+</html>
