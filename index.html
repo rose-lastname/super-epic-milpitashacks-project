@@ -1349,8 +1349,8 @@
       }
 
       .camera-shell {
-        height: min(48vh, 360px);
-        min-height: 292px;
+        height: clamp(400px, calc(100vh - 240px), 540px);
+        min-height: 400px;
       }
 
       .tone-card {
