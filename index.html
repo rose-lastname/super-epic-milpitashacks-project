@@ -1447,6 +1447,51 @@
       }
     }
 
+    @media (min-width: 621px) and (max-width: 1400px) {
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        min-height: 0;
+      }
+
+      .app {
+        height: calc(100vh - 24px);
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      header,
+      .stage-grid,
+      .camera-shell,
+      .status-panel {
+        min-height: 0;
+      }
+
+      .stage-grid {
+        height: 100%;
+        align-items: stretch;
+      }
+
+      .camera-shell {
+        height: 100%;
+        min-height: 0;
+      }
+
+      .status-panel {
+        height: 100%;
+        align-content: stretch;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .level-panel {
+        min-height: 0;
+        align-content: start;
+      }
+    }
+
     @media (max-width: 620px) {
       body {
         padding: 10px;
