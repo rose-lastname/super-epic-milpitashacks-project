@@ -1,12 +1,3 @@
-The reason the camera is recording in the background but not displaying on screen comes down to how p5.js handles its rendering pipeline.
-
-By default, when you call createCapture(VIDEO), p5.js creates an actual HTML <video> element on the page outside of your styled game window. Because the previous script called video.hide(), it hid that default element—but we forgot to tell p5.js to actively paint those incoming video pixels onto our customized canvas inside the draw() loop.
-
-Here is the corrected script. The camera logic has been fixed so it actively draws your mirrored webcam stream directly inside your whimsical rounded container.
-
-Replace your file contents with this version:
-
-HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,7 +55,6 @@ HTML
             opacity: 0.8;
         }
 
-        /* Target Core Game Interface Layout */
         .game-layout {
             display: flex;
             gap: 20px;
@@ -84,7 +74,6 @@ HTML
             background: #e2ede8;
         }
 
-        /* Sidebar UI Card Interface */
         .sidebar-panel {
             display: flex;
             flex-direction: column;
@@ -182,7 +171,7 @@ HTML
                 </div>
 
                 <div id="status-card" class="card">
-                    Click start to load AI tracker! 🚀
+                    Waiting for camera approval... 🎥
                 </div>
             </div>
         </div>
@@ -196,7 +185,6 @@ HTML
     </div>
 
     <script>
-        // --- WORD DATABASE MATRIX ---
         const wordList = [
             { char: "妈", pinyin: "mā", meaning: "Mother", tone: 1, baseFreq: 400 },
             { char: "麻", pinyin: "má", meaning: "Hemp/Numb", tone: 2, baseFreq: 260 },
@@ -205,9 +193,8 @@ HTML
         ];
 
         let currentLevel = 0;
-
-        // --- GAME ENGINE STATE FLAGS ---
-        let video;
+        let videoElement; // Raw video pointer
+        let videoTexture;  // p5 graphics reference wrapper
         let handpose;
         let hands = [];
         let gameActive = false;
@@ -215,13 +202,11 @@ HTML
         let countdownTime = 0;
         let zoneHistory = []; 
 
-        // Audio synthesizer references
         let audioCtx = null;
         let oscillator = null;
         let gainNode = null;
         let audioInitialized = false;
 
-        // DOM Element pointers
         const startBtn = document.getElementById('start-btn');
         const nextBtn = document.getElementById('next-btn');
         const uiChar = document.getElementById('ui-char');
@@ -229,20 +214,44 @@ HTML
         const uiMeaning = document.getElementById('ui-meaning');
         const statusCard = document.getElementById('status-card');
 
-        // --- p5.js FRAMEWORK CORE SETUP ---
         function setup() {
             let cnv = createCanvas(480, 360);
             cnv.parent('canvas-container');
             background('#e2ede8');
 
-            // FIX: Initialize the video feed container immediately so it is available to render
-            video = createCapture(VIDEO);
-            video.size(480, 360);
-            video.hide(); 
+            // FORCE AN IMPERATIVE NATIVE WEBCAM CALL WITH CONSTRAINT FALLBACKS
+            navigator.mediaDevices.getUserMedia({ 
+                video: { width: 480, height: 360, facingMode: "user" } 
+            })
+            .then((stream) => {
+                statusCard.innerText = "Camera linked! Initializing AI tracking module... 🧠";
+                
+                // Build a hidden raw HTML video element manually to secure stream piping
+                videoElement = document.createElement('video');
+                videoElement.srcObject = stream;
+                videoElement.width = 480;
+                videoElement.height = 360;
+                videoElement.autoplay = true;
+                videoElement.playsInline = true;
+                videoElement.muted = true;
+                
+                // Wrap it into a p5 graphic frame element so p5 can draw it inside draw()
+                videoTexture = createVideo();
+                videoTexture.elt.srcObject = stream;
+                videoTexture.hide();
 
-            // Mount handpose framework analyzer loop dynamically
-            handpose = ml5.handpose(video, () => {
-                statusCard.innerText = "AI Tracking Ready! Click Start Game to begin 🏄‍♂️";
+                // Kickstart ml5 on our raw stream
+                initML5Handpose(videoElement);
+            })
+            .catch((err) => {
+                console.error(err);
+                statusCard.innerText = "❌ Camera Blocked! Click the camera icon in your Chrome URL bar to allow access.";
+            });
+        }
+
+        function initML5Handpose(videoSrc) {
+            handpose = ml5.handpose(videoSrc, () => {
+                statusCard.innerText = "AI Tracking Active! Click 'Start Game' to surf! 🏄‍♂️";
             });
 
             handpose.on('hand', (results) => {
@@ -250,31 +259,27 @@ HTML
             });
         }
 
-        // --- MAIN RENDER EXECUTION LOOP (Runs 60fps) ---
         function draw() {
-            // FIX: Always draw the camera frame if the video asset exists, even before "Start Game" is pressed
-            if (video) {
+            // Actively draw the texture frame to canvas if stream successfully fired
+            if (videoTexture && videoTexture.elt.readyState >= 2) {
                 push();
-                // MIRROR CANVAS VIEWPORT HORIZONTALLY
                 translate(width, 0);
                 scale(-1, 1);
-                image(video, 0, 0, width, height);
+                image(videoTexture, 0, 0, width, height);
                 pop();
             } else {
                 background('#e2ede8');
             }
 
-            // If the game loop isn't active yet, stop running the rest of the game lines
             if (!gameActive) return;
 
-            // DRAW CUTTING-EDGE 2-ZONE HORIZONTAL CUTTING GRID MARKS (50% Split)
+            // Draw horizontal split lines
             stroke('rgba(110, 188, 167, 0.6)');
             strokeWeight(4);
             drawingContext.setLineDash([8, 8]);
             line(0, height / 2, width, height / 2); 
             drawingContext.setLineDash([]); 
 
-            // Zone HUD Typography Layout Info overlay
             noStroke();
             fill('rgba(51, 78, 67, 0.6)');
             textSize(12);
@@ -282,28 +287,24 @@ HTML
             text("TOP ZONE (HIGH PITCH)", 15, 25);
             text("BOTTOM ZONE (LOW PITCH)", 15, height - 15);
 
-            // ACTIVE REALTIME HAND DATA INTERPOLATION ENGINE
+            // Finger interpolation math
             if (hands.length > 0 && tracingActive) {
                 let hand = hands[0];
                 let indexFinger = hand.landmarks[8]; 
                 let x = indexFinger[0];
                 let y = indexFinger[1];
 
-                // Synchronize raw analytical space coordinates back to mirrored UI boundaries
                 let mirroredX = width - x;
 
-                // Draw whimsical indicator marker center frame tracking dot
                 fill('#ff7b7b');
                 stroke('#ffffff');
                 strokeWeight(3);
                 ellipse(mirroredX, y, 22, 22);
 
-                // --- DYNAMIC CONTINUOUS SYNTHESIZER FREQUENCY GLIDE ---
                 let normalizedY = y / height; 
                 let calculatedFreq = lerp(466, 220, normalizedY);
                 setPitch(calculatedFreq);
 
-                // --- INDEPENDENT GAME EVALUATOR STATE APPARATUS MATRIX ---
                 let currentZone = (y < height / 2) ? "Top" : "Bottom";
                 
                 if (zoneHistory.length === 0 || zoneHistory[zoneHistory.length - 1] !== currentZone) {
@@ -311,7 +312,6 @@ HTML
                 }
             }
 
-            // COUNTDOWN TIMER DISPLAY INTERFACES
             if (countdownTime > 0) {
                 push();
                 fill('rgba(255, 255, 255, 0.85)');
@@ -319,7 +319,6 @@ HTML
                 
                 fill('#6ebca7');
                 textSize(60);
-                fontFamily = 'Fredoka';
                 textAlign(CENTER, CENTER);
                 text(Math.ceil(countdownTime / 60), width / 2, height / 2);
                 countdownTime--;
@@ -331,7 +330,6 @@ HTML
             }
         }
 
-        // --- WEB AUDIO SYNTH MATRIX SETUP ---
         function initAudio() {
             if (audioInitialized) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -358,7 +356,6 @@ HTML
             gainNode.gain.linearRampToValueAtTime(volumeValue, audioCtx.currentTime + 0.05);
         }
 
-        // --- PRIMARY APPLICATION LOOP MANAGEMENT ---
         function loadLevel(index) {
             currentLevel = index;
             let word = wordList[currentLevel];
@@ -415,7 +412,6 @@ HTML
             }, 2500);
         }
 
-        // --- ALGORITHMIC PATTERN GRADING EVALUATOR ENGINE ---
         function evaluateTracedResult() {
             tracingActive = false;
             setVolume(0); 
@@ -447,6 +443,10 @@ HTML
         }
 
         startBtn.addEventListener('click', () => {
+            if (!videoTexture) {
+                statusCard.innerText = "⚠️ Camera stream not found yet. Please check permissions.";
+                return;
+            }
             gameActive = true;
             startBtn.classList.add('hidden');
             loadLevel(0);
