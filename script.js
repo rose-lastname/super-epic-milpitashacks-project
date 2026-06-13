@@ -37,19 +37,7 @@ function drawFrame() {
     height: canvas.height / 2
   };
 
-  // Optional: draw a line to visually separate the zones
-  ctx.strokeStyle = 'red';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(0, canvas.height / 2);
-  ctx.lineTo(canvas.width, canvas.height / 2);
-  ctx.stroke();
 
-  // Optional: label the zones
-  ctx.fillStyle = 'red';
-  ctx.font = '20px sans-serif';
-  ctx.fillText('TOP ZONE', 10, 25);
-  ctx.fillText('BOTTOM ZONE', 10, canvas.height / 2 + 25);
 
   requestAnimationFrame(drawFrame);
 }
