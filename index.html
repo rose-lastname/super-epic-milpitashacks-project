@@ -1001,10 +1001,10 @@
 
     .brand-logo {
       display: block;
-      width: min(430px, 100%);
+      width: min(300px, 100%);
       height: auto;
-      margin: -16px 0 -18px;
-      filter: drop-shadow(0 10px 0 rgba(0, 0, 0, 0.16));
+      margin: -18px 0 -22px;
+      filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.18));
       position: relative;
       z-index: 1;
     }
@@ -1047,13 +1047,13 @@
     .tone-chip,
     .hold-meter,
     .celebration-card {
-      border: 5px solid #050505;
-      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.92);
+      border: 3px solid #050505;
+      box-shadow: 0 8px 20px rgba(2, 48, 71, 0.18);
     }
 
     .title-card {
-      min-height: 142px;
-      padding: 14px 18px 12px;
+      min-height: 118px;
+      padding: 10px 16px 8px;
       background:
         linear-gradient(105deg, rgba(255, 232, 181, 0.9), rgba(219, 229, 245, 0.86)),
         #f7f2e8;
@@ -1082,7 +1082,7 @@
       border: 3px solid #050505;
       background: #ffe8b5;
       color: #050505;
-      box-shadow: 4px 4px 0 #050505;
+      box-shadow: 0 4px 10px rgba(2, 48, 71, 0.16);
     }
 
     .nav-icon.home,
@@ -1092,14 +1092,14 @@
     .camera-shell::before {
       background-color: #06328b;
       color: #ffe8b5;
-      text-shadow: 2px 2px 0 #050505;
+      text-shadow: none;
     }
 
     .start-button,
     .audio-button {
       background: #06328b;
       color: #ffe8b5;
-      text-shadow: 2px 2px 0 #050505;
+      text-shadow: none;
     }
 
     .start-button::before {
@@ -1147,14 +1147,14 @@
     .hanzi {
       background: #06328b;
       color: #ffe8b5;
-      text-shadow: 3px 3px 0 #050505;
+      text-shadow: none;
     }
 
     .status-text,
     .pinyin,
     .meaning-text {
       color: #06328b;
-      text-shadow: 2px 2px 0 rgba(255, 232, 181, 0.86);
+      text-shadow: none;
     }
 
     .status-text.high,
@@ -1179,21 +1179,21 @@
     .mascot {
       border: 4px solid #050505;
       background: #dbe5f5;
-      box-shadow: 5px 5px 0 #050505;
+      box-shadow: 0 5px 12px rgba(2, 48, 71, 0.2);
     }
 
     body {
-      padding: 12px;
+      padding: 8px;
     }
 
     .app {
-      gap: 10px;
+      gap: 8px;
       width: min(1220px, 100%);
     }
 
     header {
       gap: 10px;
-      grid-template-columns: minmax(0, 1fr) 170px;
+      grid-template-columns: minmax(0, 1fr) 150px;
     }
 
     .top-nav {
@@ -1212,7 +1212,7 @@
     }
 
     .start-button {
-      min-height: 96px;
+      min-height: 76px;
       min-width: 0;
       padding: 0 14px;
     }
@@ -1223,8 +1223,8 @@
     }
 
     .camera-shell {
-      height: min(58vh, 470px);
-      min-height: 360px;
+      height: min(50vh, 390px);
+      min-height: 310px;
     }
 
     canvas {
@@ -1327,6 +1327,35 @@
       font-size: 0.86rem;
       line-height: 1.25;
       padding: 10px;
+    }
+
+    @media (max-width: 1400px) {
+      .tone-chips,
+      .readout,
+      .hint {
+        display: none;
+      }
+
+      .title-card {
+        min-height: 104px;
+      }
+
+      .brand-logo {
+        width: min(280px, 100%);
+      }
+
+      .stage-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.68fr);
+      }
+
+      .camera-shell {
+        height: min(48vh, 360px);
+        min-height: 292px;
+      }
+
+      .tone-card {
+        min-height: 94px;
+      }
     }
 
     @media (max-width: 900px) {
