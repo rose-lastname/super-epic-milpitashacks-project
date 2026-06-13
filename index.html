@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mandarin Tone Trainer</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="lesson">
+        <div>
+          <p class="eyebrow">Tone 2 practice</p>
+          <h1>麻 <span>ma</span></h1>
+          <p class="meaning">hemp · rising tone</p>
+        </div>
+        <button id="startButton" type="button">Start Camera + Mic</button>
+      </section>
+
+      <section class="workspace">
+        <div class="camera-panel">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="handCanvas" aria-label="Hand movement path"></canvas>
+        </div>
+
+        <div class="score-panel">
+          <div>
+            <p class="label">Target</p>
+            <canvas id="targetCanvas" aria-label="Target rising tone shape"></canvas>
+          </div>
+
+          <div>
+            <p class="label">Your hand path</p>
+            <p id="gestureFeedback" class="feedback">Waiting to start.</p>
+          </div>
+
+          <div>
+            <p class="label">Your voice</p>
+            <canvas id="audioCanvas" aria-label="Voice volume trace"></canvas>
+            <p id="voiceFeedback" class="feedback">Microphone inactive.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./src/app.js" type="module"></script>
+  </body>
+</html>
