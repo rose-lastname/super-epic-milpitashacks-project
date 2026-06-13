@@ -580,6 +580,45 @@
       font-weight: 900;
     }
 
+    .meaning-card {
+      display: none;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.84);
+      background: rgba(255, 255, 255, 0.68);
+      box-shadow: 0 12px 26px rgba(2, 48, 71, 0.08);
+    }
+
+    .meaning-card.visible {
+      display: grid;
+    }
+
+    .meaning-photo {
+      width: 92px;
+      height: 72px;
+      object-fit: cover;
+      background: rgba(142, 202, 230, 0.22);
+    }
+
+    .meaning-label {
+      display: block;
+      color: var(--soft-ink);
+      font-size: 0.78rem;
+      font-weight: 1000;
+      text-transform: uppercase;
+    }
+
+    .meaning-text {
+      display: block;
+      margin-top: 4px;
+      color: var(--deep-space-blue);
+      font-size: 1.45rem;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
     .word-list {
       justify-content: flex-start;
     }
@@ -931,6 +970,8 @@
     .level-progress,
     .word-dot,
     .word-card,
+    .meaning-card,
+    .meaning-photo,
     .hanzi,
     .audio-button,
     .reveal-button,
@@ -1028,6 +1069,13 @@
               <span id="wordTone" class="word-tone">High tone: surf up</span>
             </span>
           </div>
+          <div id="meaningCard" class="meaning-card" aria-live="polite">
+            <img id="meaningPhoto" class="meaning-photo" alt="" />
+            <span>
+              <span class="meaning-label">English</span>
+              <span id="meaningText" class="meaning-text">mom</span>
+            </span>
+          </div>
           <div id="pathSteps" class="path-steps" aria-label="Tone path"></div>
           <div class="hold-meter" aria-label="Hold progress">
             <div class="hold-meter-top">
@@ -1096,6 +1144,9 @@
     const wordHanzi = document.getElementById("wordHanzi");
     const wordPinyin = document.getElementById("wordPinyin");
     const wordTone = document.getElementById("wordTone");
+    const meaningCard = document.getElementById("meaningCard");
+    const meaningPhoto = document.getElementById("meaningPhoto");
+    const meaningText = document.getElementById("meaningText");
     const pathSteps = document.getElementById("pathSteps");
     const holdLabel = document.getElementById("holdLabel");
     const holdTime = document.getElementById("holdTime");
@@ -1137,7 +1188,10 @@
             toneNumber: 1,
             toneLabel: "Tone 1: high-level",
             path: ["high"],
-            prompt: "stay in the high zone"
+            prompt: "stay in the high zone",
+            english: "mom",
+            imageAlt: "A mother holding a child",
+            imageUrl: "https://images.unsplash.com/photo-1542385151-efd9000785a0?auto=format&fit=crop&w=900&q=80"
           },
           {
             pinyin: "nǐ",
@@ -1146,7 +1200,10 @@
             toneNumber: 3,
             toneLabel: "Tone 3: falling-rising",
             path: ["high", "low", "high"],
-            prompt: "high, low, high"
+            prompt: "high, low, high",
+            english: "you",
+            imageAlt: "A smiling person portrait",
+            imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80"
           },
           {
             pinyin: "hǎo",
@@ -1155,7 +1212,10 @@
             toneNumber: 3,
             toneLabel: "Tone 3: falling-rising",
             path: ["high", "low", "high"],
-            prompt: "high, low, high"
+            prompt: "high, low, high",
+            english: "good",
+            imageAlt: "People making a positive handshake",
+            imageUrl: "https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=900&q=80"
           }
         ]
       },
@@ -1244,6 +1304,31 @@
       }
     }
 
+    function hideMeaningReveal() {
+      meaningCard.classList.remove("visible");
+      meaningPhoto.removeAttribute("src");
+      meaningPhoto.alt = "";
+    }
+
+    function speakEnglishMeaning(word) {
+      if (!word || !("speechSynthesis" in window)) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word.english);
+      utterance.lang = "en-US";
+      utterance.rate = 0.9;
+      utterance.pitch = 1.04;
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function showMeaningReveal(word) {
+      meaningText.textContent = word.english;
+      meaningPhoto.src = word.imageUrl;
+      meaningPhoto.alt = word.imageAlt;
+      meaningCard.classList.add("visible");
+      speakEnglishMeaning(word);
+    }
+
     function renderLevel() {
       const level = currentLevel();
       const word = currentWord();
@@ -1306,6 +1391,7 @@
       advancingWord = false;
       levelComplete = false;
       toneHintRevealed = currentRound === 1;
+      hideMeaningReveal();
       renderLevel();
       statusText.className = "status-text neutral";
       setStatus(`Listen: ${currentWord().pinyin}`);
@@ -1339,7 +1425,8 @@
       currentPathIndex = word.path.length;
       renderLevel();
       statusText.textContent = `${word.pinyin} complete`;
-      celebrateText.textContent = "Nice tone match.";
+      celebrateText.textContent = `${word.pinyin} means ${word.english}.`;
+      showMeaningReveal(word);
 
       setTimeout(() => {
         currentWordIndex += 1;
@@ -1360,6 +1447,7 @@
         currentPathIndex = 0;
         matchStartedAt = 0;
         toneHintRevealed = currentRound === 1;
+        hideMeaningReveal();
         renderLevel();
         statusText.className = "status-text neutral";
         setStatus(`Listen: ${currentWord().pinyin}`);
@@ -1367,7 +1455,7 @@
           ? "New word. Tone hint hidden."
           : "New word. Listen, then move.";
         speakCurrentWord();
-      }, 900);
+      }, 2300);
     }
 
     function checkWordMatch(toneName) {
