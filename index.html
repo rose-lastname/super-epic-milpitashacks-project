@@ -1233,10 +1233,6 @@
       const expectedTone = word.path[currentPathIndex];
 
       if (toneName !== expectedTone) {
-        if (toneName === word.path[0]) {
-          currentPathIndex = 0;
-          renderLevel();
-        }
         matchStartedAt = 0;
         updateHoldMeter(0);
         return;
