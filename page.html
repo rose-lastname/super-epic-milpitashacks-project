@@ -12,7 +12,9 @@
   
 <!--this is a webcam thing so far all it does is show the webcam feed
 its flipped -->
+
 <video id="webcam" autoplay playsinline width="640" height="480"></video>
+<canvas id="canvas"></canvas>
 
 <script>
   navigator.mediaDevices.getUserMedia({ video: true })
@@ -24,6 +26,8 @@ its flipped -->
       console.error('Webcam access denied or unavailable:', error);
     });
 </script>
+
+<script src="script.js"></script>
 
 </body>
 </html>
