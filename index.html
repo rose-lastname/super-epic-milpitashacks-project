@@ -1681,7 +1681,8 @@
     let advancingWord = false;
     let levelComplete = false;
     let toneHintRevealed = true;
-    let waitingForWordSpeech = false;
+    let speechVoicesReady = false;
+    let speechVoices = [];
 
     const HOLD_DURATION_MS = 420;
 
@@ -1897,6 +1898,78 @@
       meaningPhoto.alt = "";
     }
 
+    function warmSpeechVoices() {
+      if (!("speechSynthesis" in window)) return;
+
+      const synth = window.speechSynthesis;
+      const voices = synth.getVoices();
+      if (voices.length) {
+        speechVoices = voices;
+        speechVoicesReady = true;
+        return;
+      }
+
+      const handleVoicesChanged = () => {
+        const updatedVoices = synth.getVoices();
+        if (!updatedVoices.length) return;
+
+        speechVoices = updatedVoices;
+        speechVoicesReady = true;
+        synth.removeEventListener("voiceschanged", handleVoicesChanged);
+      };
+
+      synth.addEventListener("voiceschanged", handleVoicesChanged);
+      window.setTimeout(() => {
+        synth.removeEventListener("voiceschanged", handleVoicesChanged);
+        if (!speechVoicesReady) {
+          speechVoices = synth.getVoices();
+          speechVoicesReady = speechVoices.length > 0;
+        }
+      }, 1000);
+    }
+
+    function pickSpeechVoice(languagePrefix) {
+      const voices = speechVoicesReady && speechVoices.length
+        ? speechVoices
+        : (window.speechSynthesis ? window.speechSynthesis.getVoices() : []);
+
+      if (!voices.length) return null;
+
+      const prefix = languagePrefix.toLowerCase();
+      return (
+        voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith(prefix) && voice.localService) ||
+        voices.find((voice) => voice.lang && voice.lang.toLowerCase().startsWith(prefix)) ||
+        voices.find((voice) => voice.default) ||
+        voices[0]
+      );
+    }
+
+    function speakWithVoice(text, language, options = {}) {
+      if (!("speechSynthesis" in window)) return;
+
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language;
+      utterance.rate = options.rate ?? 1;
+      utterance.pitch = options.pitch ?? 1;
+
+      const voice = pickSpeechVoice(language.split("-")[0]);
+      if (voice) utterance.voice = voice;
+
+      if (options.onend) utterance.onend = options.onend;
+      if (options.onerror) utterance.onerror = options.onerror;
+
+      const speakNow = () => window.speechSynthesis.speak(utterance);
+
+      if (speechVoicesReady || window.speechSynthesis.getVoices().length) {
+        speakNow();
+      } else {
+        warmSpeechVoices();
+        window.setTimeout(speakNow, 75);
+      }
+    }
+
     function speakEnglishMeaning(word) {
       if (!word || !("speechSynthesis" in window)) return;
 
@@ -1953,37 +2026,28 @@
       resetHoldMeter();
     }
 
-    function speakCurrentWord(onDone) {
+    function speakCurrentWord() {
       const word = currentWord();
-      if (!word || !("speechSynthesis" in window)) {
-        if (onDone) onDone();
-        return;
-      }
+      if (!word || !("speechSynthesis" in window)) return;
 
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(word.hanzi);
-      utterance.lang = "zh-CN";
-      utterance.rate = 0.82;
-      utterance.pitch = word.toneNumber === 1 ? 1.14 : 0.96;
-      const finishSpeech = () => {
-        if (gainNode && audioContext) {
-          gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+      speakWithVoice(word.hanzi, "zh-CN", {
+        rate: 0.82,
+        pitch: word.toneNumber === 1 ? 1.14 : 0.96,
+        onend: () => {
+          if (gainNode && audioContext) {
+            gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+          }
+        },
+        onerror: () => {
+          if (gainNode && audioContext) {
+            gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+          }
         }
-        if (onDone) onDone();
-      };
+      });
+
       if (gainNode && audioContext) {
         gainNode.gain.setTargetAtTime(0.01, audioContext.currentTime, 0.04);
       }
-      utterance.onend = finishSpeech;
-      utterance.onerror = finishSpeech;
-      window.speechSynthesis.speak(utterance);
-    }
-
-    function announceCurrentWordBeforeTrace() {
-      waitingForWordSpeech = true;
-      speakCurrentWord(() => {
-        waitingForWordSpeech = false;
-      });
     }
 
     function startLevel(index = 0, round = 1) {
@@ -2003,7 +2067,7 @@
       celebrateText.textContent = currentRound === 1
         ? "Hear the word, then surf the tone."
         : "Tone hint hidden. Use your ear.";
-      announceCurrentWordBeforeTrace();
+      speakCurrentWord();
     }
 
     function showLevelCelebration(level, nextLevel, nextRound) {
@@ -2068,12 +2132,12 @@
         celebrateText.textContent = shouldHideToneHint()
           ? "New word. Tone hint hidden."
           : "New word. Listen, then move.";
-        announceCurrentWordBeforeTrace();
+        speakCurrentWord();
       }, 2300);
     }
 
     function checkWordMatch(toneName) {
-      if (!running || advancingWord || levelComplete || waitingForWordSpeech || toneName === "neutral") {
+      if (!running || advancingWord || levelComplete || toneName === "neutral") {
         matchStartedAt = 0;
         updateHoldMeter(0);
         return;
@@ -2361,6 +2425,7 @@
     drawCameraFrame();
     renderLevel();
     applyTone("neutral", null, false);
+    warmSpeechVoices();
   </script>
 </body>
 </html>
