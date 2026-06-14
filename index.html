@@ -1681,6 +1681,7 @@
     let advancingWord = false;
     let levelComplete = false;
     let toneHintRevealed = true;
+    let waitingForWordSpeech = false;
 
     const HOLD_DURATION_MS = 420;
 
@@ -1952,21 +1953,37 @@
       resetHoldMeter();
     }
 
-    function speakCurrentWord() {
+    function speakCurrentWord(onDone) {
       const word = currentWord();
-      if (!word || !("speechSynthesis" in window)) return;
+      if (!word || !("speechSynthesis" in window)) {
+        if (onDone) onDone();
+        return;
+      }
 
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(word.hanzi);
       utterance.lang = "zh-CN";
       utterance.rate = 0.82;
       utterance.pitch = word.toneNumber === 1 ? 1.14 : 0.96;
+      const finishSpeech = () => {
+        if (gainNode && audioContext) {
+          gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
+        }
+        if (onDone) onDone();
+      };
       if (gainNode && audioContext) {
         gainNode.gain.setTargetAtTime(0.01, audioContext.currentTime, 0.04);
-        utterance.onend = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
-        utterance.onerror = () => gainNode.gain.setTargetAtTime(0.06, audioContext.currentTime, 0.08);
       }
+      utterance.onend = finishSpeech;
+      utterance.onerror = finishSpeech;
       window.speechSynthesis.speak(utterance);
+    }
+
+    function announceCurrentWordBeforeTrace() {
+      waitingForWordSpeech = true;
+      speakCurrentWord(() => {
+        waitingForWordSpeech = false;
+      });
     }
 
     function startLevel(index = 0, round = 1) {
@@ -1986,7 +2003,7 @@
       celebrateText.textContent = currentRound === 1
         ? "Hear the word, then surf the tone."
         : "Tone hint hidden. Use your ear.";
-      speakCurrentWord();
+      announceCurrentWordBeforeTrace();
     }
 
     function showLevelCelebration(level, nextLevel, nextRound) {
@@ -2051,12 +2068,12 @@
         celebrateText.textContent = shouldHideToneHint()
           ? "New word. Tone hint hidden."
           : "New word. Listen, then move.";
-        speakCurrentWord();
+        announceCurrentWordBeforeTrace();
       }, 2300);
     }
 
     function checkWordMatch(toneName) {
-      if (!running || advancingWord || levelComplete || toneName === "neutral") {
+      if (!running || advancingWord || levelComplete || waitingForWordSpeech || toneName === "neutral") {
         matchStartedAt = 0;
         updateHoldMeter(0);
         return;
